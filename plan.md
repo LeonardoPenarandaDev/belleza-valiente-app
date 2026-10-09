@@ -15,8 +15,8 @@
 | Qué | Ruta en el PC |
 |---|---|
 | **Backend Laravel** | `C:\laragon\www\belleza-valiente-api` — GitHub: https://github.com/LeonardoPenarandaDev/belleza-valiente-api |
-| **App Flutter** | `C:\Users\Public\belleza_valiente_app` — GitHub: https://github.com/LeonardoPenarandaDev/belleza-valiente-app |
-| **Este plan (versión oficial)** | `C:\Users\Public\belleza_valiente_app\plan.md` |
+| **App Flutter** | `C:\laragon\www\belleza_valiente_app` — GitHub: https://github.com/LeonardoPenarandaDev/belleza-valiente-app |
+| **Este plan (versión oficial)** | `C:\laragon\www\belleza_valiente_app\plan.md` |
 | App de práctica (login de prueba, ya no se usa) | `C:\Users\Public\mi_primera_app` |
 | PHP 8.3 (Laragon) | `C:\laragon\bin\php\php-8.3.30-nts-Win32-vs16-x64` |
 | MySQL 8.0 (Laragon) | `C:\laragon\bin\mysql\mysql-8.0.30-winx64` |
@@ -36,6 +36,9 @@ Archivos clave del backend:
 | `app\Models\` | Modelos: `User`, `Zona`, `Categoria`, `Servicio`, `Profesional`, `FotoPortafolio`, `Reserva`, `Calificacion` |
 | `app\Enums\` | `Rol`, `EstadoReserva`, `MetodoPago` |
 | `config\belleza.php` | Porcentaje de comisión |
+| `lang\es\` | Mensajes de validación en español (y nombres legibles de los campos en `validation.php`) |
+| `bootstrap\app.php` | Mensajes en español de los errores 401, 403, 404 y 429 de la API |
+| `app\Providers\Filament\AdminPanelProvider.php` | Panel de administración en `/admin` (solo rol `admin`) |
 | `database\migrations\` | Definición de las tablas |
 | `database\seeders\` | Zonas, catálogo y usuarios de prueba |
 | `routes\api.php` | Rutas de la API |
@@ -45,6 +48,11 @@ Archivos clave de la app:
 | Archivo | Contenido |
 |---|---|
 | `lib\config.dart` | URL de la API, se pasa con `--dart-define=API_URL=...` |
+| `lib\core\api_client.dart` | Cliente HTTP (`dio`): agrega el token y convierte los errores de la API en `ApiException` |
+| `lib\core\token_storage.dart` | Token guardado cifrado (`flutter_secure_storage`) |
+| `lib\core\theme.dart` | Colores de marca (azul marino y dorado) |
+| `lib\features\auth\` | Sesión (`AuthController`, accesible con `AuthScope.of(context)`), login y registro |
+| `lib\features\inicio\` | Inicio provisional tras iniciar sesión (se reemplaza en la semana 2) |
 | `android\app\src\debug\AndroidManifest.xml` | Permite HTTP solo en depuración (API local) |
 
 ---
@@ -59,14 +67,18 @@ Archivos clave de la app:
 - ✅ Datos iniciales: 9 zonas y 25 servicios en 5 categorías (**provisionales**, por confirmar con la fundación) y usuarios de prueba solo en local.
 - ✅ Pruebas automáticas sobre la base MySQL `belleza_valiente_test`.
 - ✅ Proyecto Flutter `belleza_valiente_app` creado: URL de la API configurable (`lib/config.dart`) y HTTP permitido solo en depuración.
+- ✅ Backend: zona horaria `America/Bogota`.
+- ✅ Backend: autenticación (`/auth/register`, `/auth/login`, `/auth/logout`, `GET /me`, `DELETE /me`) con pruebas automáticas. Eliminar la cuenta anonimiza a la usuaria (columna `users.eliminada_at`).
+- ✅ Backend: mensajes de validación y de error de la API en español (`lang/es`, `bootstrap/app.php`).
+- ✅ Backend: **Filament 5.10 instalado y compatible con Laravel 13**. Panel en `/admin`, solo para el rol `admin` (en local: `admin@belleza.test`). Aún sin recursos (semana 3).
+- ✅ App: paquetes agregados, tema de marca, cliente HTTP con token cifrado, login, registro de clienta (con aceptación de términos), sesión guardada al reabrir la app y cierre de sesión. Pruebas de widgets en `test/`. Contrato verificado contra la API local.
 
 **Siguiente (en este orden)**
 
-1. Backend: zona horaria `America/Bogota` en `config/app.php` (hoy está en `UTC`).
-2. Backend: endpoints de autenticación (`/auth/register`, `/auth/login`, `/auth/logout`, `/me`, `DELETE /me`).
-3. Backend: instalar Filament y confirmar que es compatible con Laravel 13 (no esperar a la semana 3).
-4. App: agregar paquetes (`dio`, `flutter_secure_storage`, `url_launcher`, `image_picker`, `intl`) y hacer login y registro reales contra la API local.
-5. Cerrar los pendientes de la sección 1.10 (días 1–3), sobre todo el VPS y la cuenta de Google Play.
+1. App: probar login y registro en un emulador o teléfono contra la API local (en este PC aún no hay emulador creado: crearlo en Android Studio → Device Manager).
+2. Backend (semana 2): endpoints de catálogo (`/categorias`, `/zonas`), profesionales (`/profesionales`, `/profesionales/{id}`), perfil profesional y fotos, con Policies y pruebas.
+3. App (semana 2): inicio con categorías, servicios por categoría, lista de profesionales con filtro por zona y perfil público.
+4. Cerrar los pendientes de la sección 1.10 (días 1–3), sobre todo el VPS y la cuenta de Google Play. Falta también el enlace a los términos y la política de datos en el registro (lo entrega la fundación).
 
 ---
 
@@ -280,7 +292,7 @@ Supone **2 ayudantes a tiempo completo** con apoyo del mentor: uno en Flutter y 
 
 | Semana | Ayudante 1 — App Flutter | Ayudante 2 — Laravel | Al final de la semana se puede… |
 |---|---|---|---|
-| **1** (5–11 oct) | Tema y colores, navegación, cliente HTTP con token, pantallas de login y registro | ✅ Migraciones, modelos, Sanctum y seeders. Pendiente: zona horaria, endpoints de auth (incluido `DELETE /me`), instalar Filament | …registrarse e iniciar sesión desde el emulador o el teléfono contra la API local |
+| **1** (5–11 oct) | ✅ Tema y colores, navegación, cliente HTTP con token, pantallas de login y registro. Pendiente: probar en emulador o teléfono | ✅ Migraciones, modelos, Sanctum, seeders, zona horaria, endpoints de auth (incluido `DELETE /me`), mensajes en español, Filament instalado | …registrarse e iniciar sesión desde el emulador o el teléfono contra la API local |
 | **2** (12–18 oct) | Inicio, servicios por categoría, lista de profesionales con filtro por zona, perfil público | Endpoints de catálogo y profesionales, edición del perfil profesional, subida de fotos, Policies | …ver profesionales reales en la app |
 | **3** (19–25 oct) | Pedir cita, Mis citas, pantalla de solicitudes de la profesional (aceptar/rechazar) | Endpoints de reservas, `ReservaService` con estados y control de cruces; Filament: usuarios, creación y verificación de profesionales | …pedir una cita y que la profesional la acepte |
 | **4** (26 oct–1 nov) | Mi perfil profesional (servicios, precios, fotos), completar, cancelar, calificar, eliminar cuenta | Completar con pago y comisión, calificaciones y promedio; Filament: citas y tablero. **Alquilar y preparar el VPS** (Nginx, PHP, MySQL, HTTPS) y desplegar | …hacer el flujo completo de punta a punta, ya en el VPS |
@@ -364,7 +376,7 @@ Nada del MVP se descarta: las tablas del MVP son un subconjunto de las 16 del pl
 | El VPS se alquila tarde y no hay dónde probar con usuarias reales | Fecha límite: semana 4 (1 de noviembre); definir responsable y presupuesto en los días 1–3 |
 | Algo funciona en local y falla en el VPS | Mismo motor de base de datos (MySQL) en ambos, configuración solo en `.env`, manual de despliegue en `docs/` |
 | Citas con la hora corrida | Zona horaria `America/Bogota` y fechas ISO 8601 con desfase en la API |
-| Filament no es compatible con Laravel 13 | Instalarlo en la semana 1, no en la semana 3 |
+| Filament no es compatible con Laravel 13 | ✅ Descartado: Filament 5.10 instalado y probado en la semana 1 |
 | Hay más trabajo de backend que con Supabase (auth, API, despliegue) | Usar lo que Laravel ya trae: Sanctum, Policies, Form Requests, Filament |
 | Datos personales expuestos (Ley 1581) | Policies en todos los recursos, pruebas automáticas de acceso cruzado, datos de contacto visibles solo con la cita aceptada, eliminación de cuenta, HTTPS y copias de seguridad |
 | Se pierden datos del VPS | Copias diarias fuera del VPS y restauración probada antes del piloto |
