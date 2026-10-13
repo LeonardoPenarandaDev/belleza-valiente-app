@@ -9,6 +9,7 @@ import 'features/auth/auth_repository.dart';
 import 'features/auth/login_screen.dart';
 import 'features/catalogo/catalogo_repository.dart';
 import 'features/inicio/inicio_screen.dart';
+import 'features/reservas/reservas_repository.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +20,13 @@ void main() {
   api.alExpirarSesion = auth.sesionExpirada;
   auth.iniciar();
 
-  runApp(BellezaValienteApp(auth: auth, catalogo: CatalogoRepository(api)));
+  runApp(
+    BellezaValienteApp(
+      auth: auth,
+      catalogo: CatalogoRepository(api),
+      reservas: ReservasRepository(api),
+    ),
+  );
 }
 
 class BellezaValienteApp extends StatefulWidget {
@@ -27,10 +34,12 @@ class BellezaValienteApp extends StatefulWidget {
     super.key,
     required this.auth,
     required this.catalogo,
+    required this.reservas,
   });
 
   final AuthController auth;
   final CatalogoRepository catalogo;
+  final ReservasRepository reservas;
 
   @override
   State<BellezaValienteApp> createState() => _BellezaValienteAppState();
@@ -68,14 +77,17 @@ class _BellezaValienteAppState extends State<BellezaValienteApp> {
       controller: widget.auth,
       child: CatalogoScope(
         repo: widget.catalogo,
-        child: MaterialApp(
-          title: 'Belleza Valiente',
-          navigatorKey: _navegador,
-          theme: temaBellezaValiente(),
-          locale: const Locale('es', 'CO'),
-          supportedLocales: const [Locale('es', 'CO'), Locale('es')],
-          localizationsDelegates: GlobalMaterialLocalizations.delegates,
-          home: const _PantallaRaiz(),
+        child: ReservasScope(
+          repo: widget.reservas,
+          child: MaterialApp(
+            title: 'Belleza Valiente',
+            navigatorKey: _navegador,
+            theme: temaBellezaValiente(),
+            locale: const Locale('es', 'CO'),
+            supportedLocales: const [Locale('es', 'CO'), Locale('es')],
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
+            home: const _PantallaRaiz(),
+          ),
         ),
       ),
     );

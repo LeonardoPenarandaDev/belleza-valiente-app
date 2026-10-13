@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/widgets.dart';
 import '../auth/auth_controller.dart';
+import '../auth/boton_cerrar_sesion.dart';
 import 'catalogo_repository.dart';
 import 'modelos.dart';
 import 'servicios_screen.dart';
@@ -38,13 +39,7 @@ class _CategoriasScreenState extends State<CategoriasScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Belleza Valiente'),
-        actions: [
-          IconButton(
-            tooltip: 'Cerrar sesión',
-            icon: const Icon(Icons.logout),
-            onPressed: auth.logout,
-          ),
-        ],
+        actions: [BotonCerrarSesion()],
       ),
       body: FutureBuilder(
         future: _categorias,

@@ -59,7 +59,11 @@ Future<_RepoFalso> _abrirApp(WidgetTester tester, {Usuario? guardado}) async {
   final auth = AuthController(repo);
   await auth.iniciar();
   await tester.pumpWidget(
-    BellezaValienteApp(auth: auth, catalogo: CatalogoFalso()),
+    BellezaValienteApp(
+      auth: auth,
+      catalogo: CatalogoFalso(),
+      reservas: ReservasFalso(),
+    ),
   );
   await tester.pumpAndSettle();
   return repo;

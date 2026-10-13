@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_controller.dart';
 import '../catalogo/categorias_screen.dart';
+import '../reservas/citas_screen.dart';
+import '../reservas/reservas_repository.dart';
 
-/// Pantalla de inicio según el rol: la clienta ve las categorías y la
-/// profesional, por ahora, un inicio provisional (sus solicitudes llegan en la semana 3).
+/// Pantalla de inicio según el rol: la clienta navega entre el catálogo y sus
+/// citas; la profesional ve directamente sus solicitudes y su agenda.
 class InicioScreen extends StatelessWidget {
   const InicioScreen({super.key});
 
@@ -13,42 +15,63 @@ class InicioScreen extends StatelessWidget {
     final usuario = AuthScope.of(context).usuario!;
 
     return usuario.esProfesional
-        ? const _InicioProfesional()
-        : const CategoriasScreen();
+        ? const CitasScreen(paraProfesional: true)
+        : const _InicioClienta();
   }
 }
 
-class _InicioProfesional extends StatelessWidget {
-  const _InicioProfesional();
+class _InicioClienta extends StatefulWidget {
+  const _InicioClienta();
+
+  @override
+  State<_InicioClienta> createState() => _InicioClientaState();
+}
+
+class _InicioClientaState extends State<_InicioClienta> {
+  late final ReservasRepository _reservas;
+  int _pestana = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _reservas = ReservasScope.of(context);
+    _reservas.citasPedidas.addListener(_irAMisCitas);
+  }
+
+  @override
+  void dispose() {
+    _reservas.citasPedidas.removeListener(_irAMisCitas);
+    super.dispose();
+  }
+
+  /// Tras pedir una cita, la clienta llega a "Mis citas" para verla.
+  void _irAMisCitas() => setState(() => _pestana = 1);
 
   @override
   Widget build(BuildContext context) {
-    final auth = AuthScope.of(context);
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Belleza Valiente'),
-        actions: [
-          IconButton(
-            tooltip: 'Cerrar sesión',
-            icon: const Icon(Icons.logout),
-            onPressed: auth.logout,
-          ),
+      body: IndexedStack(
+        index: _pestana,
+        children: const [
+          CategoriasScreen(),
+          CitasScreen(paraProfesional: false),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Hola, ${auth.usuario!.nombre}',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            const Text('Aquí verás las solicitudes de tus clientas.'),
-          ],
-        ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _pestana,
+        onDestinationSelected: (i) => setState(() => _pestana = i),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Inicio',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.event_note_outlined),
+            selectedIcon: Icon(Icons.event_note),
+            label: 'Mis citas',
+          ),
+        ],
       ),
     );
   }

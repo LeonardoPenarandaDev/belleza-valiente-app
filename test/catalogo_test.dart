@@ -40,7 +40,9 @@ Future<CatalogoFalso> _abrir(
   final repo = catalogo ?? CatalogoFalso();
   final auth = AuthController(_SesionFalsa(usuario));
   await auth.iniciar();
-  await tester.pumpWidget(BellezaValienteApp(auth: auth, catalogo: repo));
+  await tester.pumpWidget(
+    BellezaValienteApp(auth: auth, catalogo: repo, reservas: ReservasFalso()),
+  );
   await tester.pumpAndSettle();
   return repo;
 }
@@ -132,10 +134,7 @@ void main() {
       ),
     );
 
-    expect(
-      find.text('Aquí verás las solicitudes de tus clientas.'),
-      findsOneWidget,
-    );
+    expect(find.text('No tienes solicitudes nuevas.'), findsOneWidget);
     expect(find.text('Uñas'), findsNothing);
   });
 

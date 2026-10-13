@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../core/formato.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
+import '../reservas/pedir_cita_screen.dart';
 import 'catalogo_repository.dart';
 import 'modelos.dart';
 
@@ -42,26 +43,39 @@ class _PerfilProfesionalScreenState extends State<PerfilProfesionalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Perfil')),
-      body: FutureBuilder(
-        future: _perfil,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return ErrorAlCargar(
-              error: snapshot.error!,
-              onReintentar: _recargar,
-            );
-          }
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return _Contenido(
-            perfil: snapshot.data!,
-            servicioId: widget.servicioId,
-          );
-        },
-      ),
+    return FutureBuilder(
+      future: _perfil,
+      builder: (context, snapshot) {
+        final perfil = snapshot.data;
+
+        return Scaffold(
+          appBar: AppBar(title: const Text('Perfil')),
+          body: snapshot.hasError
+              ? ErrorAlCargar(error: snapshot.error!, onReintentar: _recargar)
+              : perfil == null
+              ? const Center(child: CircularProgressIndicator())
+              : _Contenido(perfil: perfil, servicioId: widget.servicioId),
+          bottomNavigationBar: perfil == null || perfil.servicios.isEmpty
+              ? null
+              : SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    child: FilledButton.icon(
+                      icon: const Icon(Icons.event_available),
+                      label: const Text('Pedir cita'),
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => PedirCitaScreen(
+                            perfil: perfil,
+                            servicioId: widget.servicioId,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+        );
+      },
     );
   }
 }

@@ -37,7 +37,9 @@ Archivos clave del backend:
 | `app\Enums\` | `Rol`, `EstadoReserva`, `MetodoPago` |
 | `app\Http\Controllers\Api\V1\` | Controladores de la API (auth, catálogo, profesionales, mi perfil profesional) |
 | `app\Http\Resources\` | Forma del JSON que recibe la app |
-| `app\Policies\` | Permisos: `ProfesionalPolicy` (editar el perfil propio) y `FotoPortafolioPolicy` (borrar solo fotos propias) |
+| `app\Policies\` | Permisos: `ProfesionalPolicy` (editar el perfil propio; el admin, todos), `FotoPortafolioPolicy` (borrar solo fotos propias) y `ReservaPolicy` (ver solo citas propias) |
+| `app\Services\ReservaService.php` | Todos los cambios de estado de las citas y el control de cruces |
+| `app\Filament\Resources\` | Panel: Profesionales (crear, verificar, pausar, zonas, servicios y precios) y Usuarios (consulta) |
 | `config\belleza.php` | Porcentaje de comisión |
 | `lang\es\` | Mensajes de validación en español (y nombres legibles de los campos en `validation.php`) |
 | `bootstrap\app.php` | Mensajes en español de los errores 401, 403, 404 y 429 de la API |
@@ -57,7 +59,9 @@ Archivos clave de la app:
 | `lib\features\auth\` | Sesión (`AuthController`, accesible con `AuthScope.of(context)`), login y registro |
 | `lib\core\formato.dart` | Formato de precios (`$25.000`) y duraciones (`1 h 30 min`) |
 | `lib\features\catalogo\` | Categorías, servicios, lista de profesionales con filtro por zona y perfil público (repositorio accesible con `CatalogoScope.of(context)`) |
-| `lib\features\inicio\` | Inicio según el rol: la clienta ve las categorías; la profesional, un inicio provisional (semana 3) |
+| `lib\core\fechas.dart` | Fechas siempre en hora de Colombia, al mostrar y al enviar a la API |
+| `lib\features\reservas\` | Pedir cita, Mis citas (clienta) y Solicitudes/Agenda/Historial (profesional), con aceptar, rechazar y cancelar (`ReservasScope.of(context)`) |
+| `lib\features\inicio\` | Inicio según el rol: la clienta navega entre Inicio y Mis citas; la profesional ve sus citas |
 | `android\app\src\debug\AndroidManifest.xml` | Permite HTTP solo en depuración (API local) |
 
 ---
@@ -80,12 +84,16 @@ Archivos clave de la app:
 - ✅ Backend (semana 2): `/categorias`, `/zonas`, `/profesionales` (filtro por servicio y zona, de a 20 por página, ordenadas por calificación), `/profesionales/{id}`, `/mi-perfil-profesional` (ver y editar bio, zonas, servicios y precios) y subida/borrado de fotos (máx. 10, hasta 5 MB). Policies y 18 pruebas nuevas (41 en total).
 - ✅ Backend: columna `profesionales.activa` para que la fundación pueda pausar a una profesional sin quitarle la verificación. A las clientas solo les aparecen las verificadas, activas y con la cuenta vigente.
 - ✅ App (semana 2): inicio de la clienta con categorías, servicios por categoría, lista de profesionales con filtro por zona y perfil público (servicios y precios, fotos, opiniones). Pruebas de widgets del recorrido completo. Contrato verificado contra la API local.
+- ✅ App probada en el emulador (Medium Phone API 37) contra la API local: login, catálogo, perfil y Mis citas con datos reales.
+- ✅ Backend (semana 3): `GET/POST /reservas`, `GET /reservas/{id}` y aceptar, rechazar y cancelar a través de `ReservaService`. Aceptar bloquea a la profesional en una transacción y rechaza cruces por intervalo y fechas pasadas. Cada cita trae las `acciones` que la usuaria puede hacer. Teléfono y dirección solo con la cita aceptada. Columna `reservas.cancelada_por`.
+- ✅ Backend (semana 3): Filament con Profesionales (crear cuenta y perfil, zonas, servicios con precio, verificar y pausar desde la tabla) y Usuarios (consulta por rol). 61 pruebas en total.
+- ✅ App (semana 3): pedir cita desde el perfil, Mis citas de la clienta (próximas e historial, cancelar) y citas de la profesional (solicitudes, agenda e historial; aceptar, rechazar y cancelar con motivo). Refresco al abrir, al deslizar y cada 30 s. 24 pruebas de widgets.
 
 **Siguiente (en este orden)**
 
-1. App: probar en un emulador o teléfono, contra la API local, el login, el registro y el recorrido de la semana 2 (en este PC aún no hay emulador creado: crearlo en Android Studio → Device Manager). Para que las fotos se vean debe existir `public/storage` en el backend (`php artisan storage:link`; ya está hecho en este PC).
-2. Backend (semana 3): `POST /reservas` y `GET /reservas`, `ReservaService` con aceptar, rechazar y cancelar y control de cruces por intervalo, con pruebas de permisos. Filament: usuarios y creación y verificación de profesionales.
-3. App (semana 3): pedir cita desde el perfil de la profesional, Mis citas (clienta) y solicitudes con aceptar/rechazar (profesional).
+1. Probar en el emulador el recorrido de la semana 3: pedir cita como clienta y aceptarla, rechazarla o cancelarla como profesional. Probar el panel en `http://belleza-valiente-api.test/admin` creando una profesional.
+2. Backend (semana 4): completar con método y valor de pago y comisión, calificar y recalcular el promedio. Filament: citas con filtro por estado y tablero de indicadores. **Alquilar y preparar el VPS.**
+3. App (semana 4): Mi perfil profesional (datos, zonas, servicios y precios, fotos), completar, calificar y eliminar cuenta.
 4. Cerrar los pendientes de la sección 1.10 (días 1–3), sobre todo el VPS y la cuenta de Google Play. Falta también el enlace a los términos y la política de datos en el registro (lo entrega la fundación).
 
 ---
@@ -226,7 +234,8 @@ Todas bajo `/api/v1`, en JSON, con token Sanctum salvo registro y login.
 | GET | `/profesionales/{id}` | Todos | Perfil, servicios, precios, fotos, calificaciones |
 | GET / PUT | `/mi-perfil-profesional` | Profesional | Ver y editar bio, zonas, servicios y precios |
 | POST / DELETE | `/mi-perfil-profesional/fotos` | Profesional | Subir o borrar foto del portafolio |
-| GET | `/reservas` | Clienta / Profesional | Mis citas (cada una ve solo las suyas) |
+| GET | `/reservas` | Clienta / Profesional | Mis citas (cada una ve solo las suyas; incluye las `acciones` permitidas) |
+| GET | `/reservas/{id}` | Clienta / Profesional | Una cita propia |
 | POST | `/reservas` | Clienta | Pedir cita (queda `solicitada`; el servidor copia precio y duración) |
 | POST | `/reservas/{id}/aceptar` | Profesional | Aceptar (valida fecha futura y cruce de horario) |
 | POST | `/reservas/{id}/rechazar` | Profesional | Rechazar con motivo opcional |
@@ -302,7 +311,7 @@ Supone **2 ayudantes a tiempo completo** con apoyo del mentor: uno en Flutter y 
 |---|---|---|---|
 | **1** (5–11 oct) | ✅ Tema y colores, navegación, cliente HTTP con token, pantallas de login y registro. Pendiente: probar en emulador o teléfono | ✅ Migraciones, modelos, Sanctum, seeders, zona horaria, endpoints de auth (incluido `DELETE /me`), mensajes en español, Filament instalado | …registrarse e iniciar sesión desde el emulador o el teléfono contra la API local |
 | **2** (12–18 oct) | ✅ Inicio, servicios por categoría, lista de profesionales con filtro por zona, perfil público | ✅ Endpoints de catálogo y profesionales, edición del perfil profesional, subida de fotos, Policies | …ver profesionales reales en la app |
-| **3** (19–25 oct) | Pedir cita, Mis citas, pantalla de solicitudes de la profesional (aceptar/rechazar) | Endpoints de reservas, `ReservaService` con estados y control de cruces; Filament: usuarios, creación y verificación de profesionales | …pedir una cita y que la profesional la acepte |
+| **3** (19–25 oct) | ✅ Pedir cita, Mis citas, pantalla de solicitudes de la profesional (aceptar/rechazar) | ✅ Endpoints de reservas, `ReservaService` con estados y control de cruces; Filament: usuarios, creación y verificación de profesionales | …pedir una cita y que la profesional la acepte |
 | **4** (26 oct–1 nov) | Mi perfil profesional (servicios, precios, fotos), completar, cancelar, calificar, eliminar cuenta | Completar con pago y comisión, calificaciones y promedio; Filament: citas y tablero. **Alquilar y preparar el VPS** (Nginx, PHP, MySQL, HTTPS) y desplegar | …hacer el flujo completo de punta a punta, ya en el VPS |
 | **5** (2–8 nov) | Términos y política de datos, botones de WhatsApp, refresco automático, pulir pantallas; compilar apuntando al VPS | Pruebas automáticas de permisos y estados, cargar perfiles reales del piloto, copias de seguridad y restauración de prueba, páginas públicas | …probar con 3–5 profesionales y clientas reales |
 | **6** (9–15 nov) | Corrección de errores, APK firmado, prueba interna de Google Play | Corrección de errores, ajustes en producción, manual de despliegue en `docs/` | **…entregar el MVP** |
