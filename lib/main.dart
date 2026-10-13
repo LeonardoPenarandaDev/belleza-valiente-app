@@ -7,6 +7,7 @@ import 'core/token_storage.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/auth_repository.dart';
 import 'features/auth/login_screen.dart';
+import 'features/catalogo/catalogo_repository.dart';
 import 'features/inicio/inicio_screen.dart';
 
 void main() {
@@ -18,13 +19,18 @@ void main() {
   api.alExpirarSesion = auth.sesionExpirada;
   auth.iniciar();
 
-  runApp(BellezaValienteApp(auth: auth));
+  runApp(BellezaValienteApp(auth: auth, catalogo: CatalogoRepository(api)));
 }
 
 class BellezaValienteApp extends StatefulWidget {
-  const BellezaValienteApp({super.key, required this.auth});
+  const BellezaValienteApp({
+    super.key,
+    required this.auth,
+    required this.catalogo,
+  });
 
   final AuthController auth;
+  final CatalogoRepository catalogo;
 
   @override
   State<BellezaValienteApp> createState() => _BellezaValienteAppState();
@@ -60,14 +66,17 @@ class _BellezaValienteAppState extends State<BellezaValienteApp> {
   Widget build(BuildContext context) {
     return AuthScope(
       controller: widget.auth,
-      child: MaterialApp(
-        title: 'Belleza Valiente',
-        navigatorKey: _navegador,
-        theme: temaBellezaValiente(),
-        locale: const Locale('es', 'CO'),
-        supportedLocales: const [Locale('es', 'CO'), Locale('es')],
-        localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        home: const _PantallaRaiz(),
+      child: CatalogoScope(
+        repo: widget.catalogo,
+        child: MaterialApp(
+          title: 'Belleza Valiente',
+          navigatorKey: _navegador,
+          theme: temaBellezaValiente(),
+          locale: const Locale('es', 'CO'),
+          supportedLocales: const [Locale('es', 'CO'), Locale('es')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
+          home: const _PantallaRaiz(),
+        ),
       ),
     );
   }

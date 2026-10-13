@@ -35,6 +35,9 @@ Archivos clave del backend:
 | `.env` | Configuración local (base de datos, comisión). No se sube a Git |
 | `app\Models\` | Modelos: `User`, `Zona`, `Categoria`, `Servicio`, `Profesional`, `FotoPortafolio`, `Reserva`, `Calificacion` |
 | `app\Enums\` | `Rol`, `EstadoReserva`, `MetodoPago` |
+| `app\Http\Controllers\Api\V1\` | Controladores de la API (auth, catálogo, profesionales, mi perfil profesional) |
+| `app\Http\Resources\` | Forma del JSON que recibe la app |
+| `app\Policies\` | Permisos: `ProfesionalPolicy` (editar el perfil propio) y `FotoPortafolioPolicy` (borrar solo fotos propias) |
 | `config\belleza.php` | Porcentaje de comisión |
 | `lang\es\` | Mensajes de validación en español (y nombres legibles de los campos en `validation.php`) |
 | `bootstrap\app.php` | Mensajes en español de los errores 401, 403, 404 y 429 de la API |
@@ -52,7 +55,9 @@ Archivos clave de la app:
 | `lib\core\token_storage.dart` | Token guardado cifrado (`flutter_secure_storage`) |
 | `lib\core\theme.dart` | Colores de marca (azul marino y dorado) |
 | `lib\features\auth\` | Sesión (`AuthController`, accesible con `AuthScope.of(context)`), login y registro |
-| `lib\features\inicio\` | Inicio provisional tras iniciar sesión (se reemplaza en la semana 2) |
+| `lib\core\formato.dart` | Formato de precios (`$25.000`) y duraciones (`1 h 30 min`) |
+| `lib\features\catalogo\` | Categorías, servicios, lista de profesionales con filtro por zona y perfil público (repositorio accesible con `CatalogoScope.of(context)`) |
+| `lib\features\inicio\` | Inicio según el rol: la clienta ve las categorías; la profesional, un inicio provisional (semana 3) |
 | `android\app\src\debug\AndroidManifest.xml` | Permite HTTP solo en depuración (API local) |
 
 ---
@@ -72,12 +77,15 @@ Archivos clave de la app:
 - ✅ Backend: mensajes de validación y de error de la API en español (`lang/es`, `bootstrap/app.php`).
 - ✅ Backend: **Filament 5.10 instalado y compatible con Laravel 13**. Panel en `/admin`, solo para el rol `admin` (en local: `admin@belleza.test`). Aún sin recursos (semana 3).
 - ✅ App: paquetes agregados, tema de marca, cliente HTTP con token cifrado, login, registro de clienta (con aceptación de términos), sesión guardada al reabrir la app y cierre de sesión. Pruebas de widgets en `test/`. Contrato verificado contra la API local.
+- ✅ Backend (semana 2): `/categorias`, `/zonas`, `/profesionales` (filtro por servicio y zona, de a 20 por página, ordenadas por calificación), `/profesionales/{id}`, `/mi-perfil-profesional` (ver y editar bio, zonas, servicios y precios) y subida/borrado de fotos (máx. 10, hasta 5 MB). Policies y 18 pruebas nuevas (41 en total).
+- ✅ Backend: columna `profesionales.activa` para que la fundación pueda pausar a una profesional sin quitarle la verificación. A las clientas solo les aparecen las verificadas, activas y con la cuenta vigente.
+- ✅ App (semana 2): inicio de la clienta con categorías, servicios por categoría, lista de profesionales con filtro por zona y perfil público (servicios y precios, fotos, opiniones). Pruebas de widgets del recorrido completo. Contrato verificado contra la API local.
 
 **Siguiente (en este orden)**
 
-1. App: probar login y registro en un emulador o teléfono contra la API local (en este PC aún no hay emulador creado: crearlo en Android Studio → Device Manager).
-2. Backend (semana 2): endpoints de catálogo (`/categorias`, `/zonas`), profesionales (`/profesionales`, `/profesionales/{id}`), perfil profesional y fotos, con Policies y pruebas.
-3. App (semana 2): inicio con categorías, servicios por categoría, lista de profesionales con filtro por zona y perfil público.
+1. App: probar en un emulador o teléfono, contra la API local, el login, el registro y el recorrido de la semana 2 (en este PC aún no hay emulador creado: crearlo en Android Studio → Device Manager). Para que las fotos se vean debe existir `public/storage` en el backend (`php artisan storage:link`; ya está hecho en este PC).
+2. Backend (semana 3): `POST /reservas` y `GET /reservas`, `ReservaService` con aceptar, rechazar y cancelar y control de cruces por intervalo, con pruebas de permisos. Filament: usuarios y creación y verificación de profesionales.
+3. App (semana 3): pedir cita desde el perfil de la profesional, Mis citas (clienta) y solicitudes con aceptar/rechazar (profesional).
 4. Cerrar los pendientes de la sección 1.10 (días 1–3), sobre todo el VPS y la cuenta de Google Play. Falta también el enlace a los términos y la política de datos en el registro (lo entrega la fundación).
 
 ---
@@ -152,7 +160,7 @@ Ya creadas en `database\migrations\`:
 | `zonas` | Zonas o barrios de Cúcuta que se cubren |
 | `categorias` | Cabello, Uñas, Barbería, Rostro, Maquillaje |
 | `servicios` | Catálogo base por categoría, con duración y precio de referencia |
-| `profesionales` | `user_id`, bio, años de experiencia, verificada (sí/no), calificación promedio y total de calificaciones |
+| `profesionales` | `user_id`, bio, años de experiencia, verificada (sí/no), activa (sí/no), calificación promedio y total de calificaciones |
 | `profesional_zona` | Qué zonas atiende cada profesional |
 | `servicio_profesional` | Qué servicios ofrece cada profesional y a qué precio |
 | `fotos_portafolio` | Ruta de cada foto de la profesional |
@@ -214,8 +222,8 @@ Todas bajo `/api/v1`, en JSON, con token Sanctum salvo registro y login.
 | DELETE | `/me` | Todos | Eliminar la cuenta (anonimiza datos y revoca tokens) |
 | GET | `/categorias` | Todos | Categorías con sus servicios |
 | GET | `/zonas` | Todos | Lista de zonas de Cúcuta |
-| GET | `/profesionales?servicio_id=&zona=` | Clienta | Profesionales verificadas que ofrecen el servicio en esa zona |
-| GET | `/profesionales/{id}` | Clienta | Perfil, servicios, precios, fotos, calificaciones |
+| GET | `/profesionales?servicio_id=&zona_id=&page=` | Todos | Profesionales verificadas que ofrecen el servicio en esa zona |
+| GET | `/profesionales/{id}` | Todos | Perfil, servicios, precios, fotos, calificaciones |
 | GET / PUT | `/mi-perfil-profesional` | Profesional | Ver y editar bio, zonas, servicios y precios |
 | POST / DELETE | `/mi-perfil-profesional/fotos` | Profesional | Subir o borrar foto del portafolio |
 | GET | `/reservas` | Clienta / Profesional | Mis citas (cada una ve solo las suyas) |
@@ -293,7 +301,7 @@ Supone **2 ayudantes a tiempo completo** con apoyo del mentor: uno en Flutter y 
 | Semana | Ayudante 1 — App Flutter | Ayudante 2 — Laravel | Al final de la semana se puede… |
 |---|---|---|---|
 | **1** (5–11 oct) | ✅ Tema y colores, navegación, cliente HTTP con token, pantallas de login y registro. Pendiente: probar en emulador o teléfono | ✅ Migraciones, modelos, Sanctum, seeders, zona horaria, endpoints de auth (incluido `DELETE /me`), mensajes en español, Filament instalado | …registrarse e iniciar sesión desde el emulador o el teléfono contra la API local |
-| **2** (12–18 oct) | Inicio, servicios por categoría, lista de profesionales con filtro por zona, perfil público | Endpoints de catálogo y profesionales, edición del perfil profesional, subida de fotos, Policies | …ver profesionales reales en la app |
+| **2** (12–18 oct) | ✅ Inicio, servicios por categoría, lista de profesionales con filtro por zona, perfil público | ✅ Endpoints de catálogo y profesionales, edición del perfil profesional, subida de fotos, Policies | …ver profesionales reales en la app |
 | **3** (19–25 oct) | Pedir cita, Mis citas, pantalla de solicitudes de la profesional (aceptar/rechazar) | Endpoints de reservas, `ReservaService` con estados y control de cruces; Filament: usuarios, creación y verificación de profesionales | …pedir una cita y que la profesional la acepte |
 | **4** (26 oct–1 nov) | Mi perfil profesional (servicios, precios, fotos), completar, cancelar, calificar, eliminar cuenta | Completar con pago y comisión, calificaciones y promedio; Filament: citas y tablero. **Alquilar y preparar el VPS** (Nginx, PHP, MySQL, HTTPS) y desplegar | …hacer el flujo completo de punta a punta, ya en el VPS |
 | **5** (2–8 nov) | Términos y política de datos, botones de WhatsApp, refresco automático, pulir pantallas; compilar apuntando al VPS | Pruebas automáticas de permisos y estados, cargar perfiles reales del piloto, copias de seguridad y restauración de prueba, páginas públicas | …probar con 3–5 profesionales y clientas reales |

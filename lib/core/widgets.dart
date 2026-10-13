@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'theme.dart';
+
 /// Nombre de la app en las pantallas de acceso.
 class EncabezadoMarca extends StatelessWidget {
   const EncabezadoMarca({super.key});
@@ -47,6 +49,131 @@ class MensajeError extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(mensaje, style: TextStyle(color: colores.onErrorContainer)),
+    );
+  }
+}
+
+/// Pantalla de error al cargar datos, con botón para reintentar.
+class ErrorAlCargar extends StatelessWidget {
+  const ErrorAlCargar({
+    super.key,
+    required this.error,
+    required this.onReintentar,
+  });
+
+  final Object error;
+  final VoidCallback onReintentar;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off, size: 48),
+            const SizedBox(height: 16),
+            Text('$error', textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            OutlinedButton(
+              onPressed: onReintentar,
+              child: const Text('Reintentar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Mensaje centrado cuando una lista no tiene resultados.
+class SinResultados extends StatelessWidget {
+  const SinResultados(this.mensaje, {super.key, this.icono = Icons.search_off});
+
+  final String mensaje;
+  final IconData icono;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icono, size: 48, color: Theme.of(context).colorScheme.outline),
+            const SizedBox(height: 16),
+            Text(mensaje, textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Foto de la profesional, o sus iniciales si no tiene fotos.
+class AvatarProfesional extends StatelessWidget {
+  const AvatarProfesional({
+    super.key,
+    required this.nombre,
+    this.foto,
+    this.radio = 28,
+  });
+
+  final String nombre;
+  final String? foto;
+  final double radio;
+
+  @override
+  Widget build(BuildContext context) {
+    final colores = Theme.of(context).colorScheme;
+    final iniciales = nombre
+        .split(' ')
+        .where((p) => p.isNotEmpty)
+        .take(2)
+        .map((p) => p[0].toUpperCase())
+        .join();
+
+    return CircleAvatar(
+      radius: radio,
+      backgroundColor: colores.secondaryContainer,
+      foregroundImage: foto == null ? null : NetworkImage(foto!),
+      onForegroundImageError: foto == null ? null : (_, _) {},
+      child: Text(
+        iniciales,
+        style: TextStyle(color: colores.onSecondaryContainer),
+      ),
+    );
+  }
+}
+
+/// "★ 4,8 (12)" o "Nueva" si aún no tiene calificaciones.
+class CalificacionResumen extends StatelessWidget {
+  const CalificacionResumen({
+    super.key,
+    required this.promedio,
+    required this.total,
+  });
+
+  final double promedio;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final estilo = Theme.of(context).textTheme.bodyMedium;
+    if (total == 0) return Text('Nueva', style: estilo);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.star, size: 18, color: Marca.dorado),
+        const SizedBox(width: 2),
+        Text(
+          '${promedio.toStringAsFixed(1).replaceAll('.', ',')} ($total)',
+          style: estilo,
+        ),
+      ],
     );
   }
 }

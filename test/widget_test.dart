@@ -7,6 +7,8 @@ import 'package:belleza_valiente_app/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'fakes.dart';
+
 const _ana = Usuario(
   id: 1,
   nombre: 'Ana Pérez',
@@ -56,7 +58,9 @@ Future<_RepoFalso> _abrirApp(WidgetTester tester, {Usuario? guardado}) async {
   final repo = _RepoFalso()..guardado = guardado;
   final auth = AuthController(repo);
   await auth.iniciar();
-  await tester.pumpWidget(BellezaValienteApp(auth: auth));
+  await tester.pumpWidget(
+    BellezaValienteApp(auth: auth, catalogo: CatalogoFalso()),
+  );
   await tester.pumpAndSettle();
   return repo;
 }
@@ -71,7 +75,7 @@ void main() {
   testWidgets('con sesión guardada entra directo al inicio', (tester) async {
     await _abrirApp(tester, guardado: _ana);
 
-    expect(find.text('Hola, Ana Pérez'), findsOneWidget);
+    expect(find.text('Hola, Ana'), findsOneWidget);
   });
 
   testWidgets('login correcto lleva al inicio y cerrar sesión vuelve al login', (
@@ -84,7 +88,7 @@ void main() {
     await tester.tap(find.text('Iniciar sesión'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Hola, Ana Pérez'), findsOneWidget);
+    expect(find.text('Hola, Ana'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Cerrar sesión'));
     await tester.pumpAndSettle();
@@ -108,7 +112,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Correo o contraseña incorrectos.'), findsOneWidget);
-    expect(find.text('Hola, Ana Pérez'), findsNothing);
+    expect(find.text('Hola, Ana'), findsNothing);
   });
 
   testWidgets('registro exige aceptar términos y muestra errores del servidor', (
@@ -153,7 +157,7 @@ void main() {
     await tester.tap(crearCuenta);
     await tester.pumpAndSettle();
 
-    expect(find.text('Hola, Ana Pérez'), findsOneWidget);
+    expect(find.text('Hola, Ana'), findsOneWidget);
     expect(find.text('Crear cuenta'), findsNothing);
   });
 
