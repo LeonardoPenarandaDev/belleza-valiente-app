@@ -53,6 +53,11 @@ class AuthController extends ChangeNotifier {
     sesionExpirada();
   }
 
+  Future<void> eliminarCuenta(String password) async {
+    await _repo.eliminarCuenta(password);
+    sesionExpirada();
+  }
+
   /// La API respondió 401: el token ya no sirve.
   void sesionExpirada() {
     usuario = null;

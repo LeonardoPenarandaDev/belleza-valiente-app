@@ -1,6 +1,8 @@
 import 'package:belleza_valiente_app/core/api_client.dart';
 import 'package:belleza_valiente_app/features/catalogo/catalogo_repository.dart';
 import 'package:belleza_valiente_app/features/catalogo/modelos.dart';
+import 'package:belleza_valiente_app/features/perfil/mi_perfil_repository.dart';
+import 'package:belleza_valiente_app/features/perfil/perfil_propio.dart';
 import 'package:belleza_valiente_app/features/reservas/reserva.dart';
 import 'package:belleza_valiente_app/features/reservas/reservas_repository.dart';
 import 'package:flutter/foundation.dart';
@@ -121,6 +123,10 @@ Reserva reservaDePrueba({
   String? motivo,
   String? canceladaPor,
   DateTime? fechaHora,
+  MetodoPago? metodoPago,
+  int? valorPagado,
+  int? comision,
+  CalificacionCita? calificacion,
 }) => Reserva(
   id: id,
   estado: estado,
@@ -139,6 +145,10 @@ Reserva reservaDePrueba({
   clienteTelefono: clienteTelefono,
   motivo: motivo,
   canceladaPor: canceladaPor,
+  metodoPago: metodoPago,
+  valorPagado: valorPagado,
+  comision: comision,
+  calificacion: calificacion,
 );
 
 /// Reservas falsas: guardan lo que la app envía y responden sin la API.
@@ -148,6 +158,8 @@ class ReservasFalso implements ReservasRepository {
 
   Map<String, Object?>? pedida;
   final ejecutadas = <(AccionReserva, int, String?)>[];
+  final pagos = <(int, MetodoPago, int)>[];
+  final calificaciones = <(int, int, String?)>[];
 
   /// Respuesta de una acción (por defecto, la cita con el nuevo estado).
   Reserva Function(AccionReserva, Reserva)? resultado;
@@ -203,6 +215,8 @@ class ReservasFalso implements ReservasRepository {
             AccionReserva.aceptar => EstadoReserva.aceptada,
             AccionReserva.rechazar => EstadoReserva.rechazada,
             AccionReserva.cancelar => EstadoReserva.cancelada,
+            AccionReserva.completar ||
+            AccionReserva.calificar => throw UnsupportedError('$accion'),
           },
           acciones: accion == AccionReserva.aceptar
               ? {AccionReserva.cancelar}
@@ -218,4 +232,137 @@ class ReservasFalso implements ReservasRepository {
     cambios.value++;
     return nueva;
   }
+
+  @override
+  Future<Reserva> completar(
+    int reservaId, {
+    required MetodoPago metodo,
+    required int valor,
+  }) async {
+    pagos.add((reservaId, metodo, valor));
+    if (errorAccion != null) throw errorAccion!;
+    return _reemplazar(
+      reservaDePrueba(
+        id: reservaId,
+        estado: EstadoReserva.completada,
+        metodoPago: metodo,
+        valorPagado: valor,
+        comision: (valor * 0.15).round(),
+      ),
+    );
+  }
+
+  @override
+  Future<Reserva> calificar(
+    int reservaId, {
+    required int estrellas,
+    String? comentario,
+  }) async {
+    calificaciones.add((reservaId, estrellas, comentario));
+    if (errorAccion != null) throw errorAccion!;
+    return _reemplazar(
+      reservaDePrueba(
+        id: reservaId,
+        estado: EstadoReserva.completada,
+        calificacion: CalificacionCita(
+          estrellas: estrellas,
+          comentario: comentario,
+        ),
+      ),
+    );
+  }
+
+  Reserva _reemplazar(Reserva nueva) {
+    lista = [for (final r in lista) r.id == nueva.id ? nueva : r];
+    cambios.value++;
+    return nueva;
+  }
+}
+
+PerfilPropio perfilPropioDePrueba({
+  bool verificada = true,
+  bool activa = true,
+  List<Foto> fotos = const [],
+}) => PerfilPropio(
+  id: 10,
+  nombre: 'Laura Gómez',
+  bio: 'Manicurista con 5 años de experiencia.',
+  aniosExperiencia: 5,
+  verificada: verificada,
+  activa: activa,
+  calificacionPromedio: 4.8,
+  totalCalificaciones: 12,
+  zonas: const [centro],
+  servicios: const [
+    ServicioPropio(
+      servicioId: 7,
+      nombre: 'Manicura tradicional',
+      precio: 26000,
+      activo: true,
+    ),
+  ],
+  fotos: fotos,
+);
+
+/// Perfil propio falso: guarda lo que la app envía y responde sin la API.
+class MiPerfilFalso implements MiPerfilRepository {
+  MiPerfilFalso([PerfilPropio? perfil])
+    : perfil = perfil ?? perfilPropioDePrueba();
+
+  PerfilPropio perfil;
+  ApiException? errorGuardar;
+
+  Map<String, Object?>? datos;
+  List<int>? zonas;
+  List<ServicioPropio>? servicios;
+  final subidas = <String>[];
+  final borradas = <int>[];
+
+  @override
+  Future<PerfilPropio> ver() async => perfil;
+
+  @override
+  Future<PerfilPropio> guardarDatos({
+    String? bio,
+    int? aniosExperiencia,
+  }) async {
+    datos = {'bio': bio, 'anios_experiencia': aniosExperiencia};
+    if (errorGuardar != null) throw errorGuardar!;
+    return perfil = PerfilPropio(
+      id: perfil.id,
+      nombre: perfil.nombre,
+      bio: bio,
+      aniosExperiencia: aniosExperiencia,
+      verificada: perfil.verificada,
+      activa: perfil.activa,
+      calificacionPromedio: perfil.calificacionPromedio,
+      totalCalificaciones: perfil.totalCalificaciones,
+      zonas: perfil.zonas,
+      servicios: perfil.servicios,
+      fotos: perfil.fotos,
+    );
+  }
+
+  @override
+  Future<PerfilPropio> guardarZonas(List<int> zonaIds) async {
+    zonas = zonaIds;
+    if (errorGuardar != null) throw errorGuardar!;
+    return perfil;
+  }
+
+  @override
+  Future<PerfilPropio> guardarServicios(List<ServicioPropio> servicios) async {
+    this.servicios = servicios;
+    if (errorGuardar != null) throw errorGuardar!;
+    return perfil;
+  }
+
+  @override
+  Future<Foto> subirFoto(String ruta) async {
+    subidas.add(ruta);
+    return Foto(id: 50 + subidas.length, url: 'http://fotos.test/$ruta');
+  }
+
+  @override
+  Future<void> borrarFoto(int fotoId) async => borradas.add(fotoId);
 }

@@ -52,6 +52,22 @@ class _RepoFalso implements AuthRepository {
 
   @override
   Future<void> logout() async {}
+
+  String? passwordEliminar;
+
+  @override
+  Future<void> eliminarCuenta(String password) async {
+    passwordEliminar = password;
+    if (password != 'secreta123') {
+      throw ApiException(
+        'La contraseña no es correcta.',
+        errores: {
+          'password': ['La contraseña no es correcta.'],
+        },
+        status: 422,
+      );
+    }
+  }
 }
 
 Future<_RepoFalso> _abrirApp(WidgetTester tester, {Usuario? guardado}) async {
@@ -63,6 +79,7 @@ Future<_RepoFalso> _abrirApp(WidgetTester tester, {Usuario? guardado}) async {
       auth: auth,
       catalogo: CatalogoFalso(),
       reservas: ReservasFalso(),
+      miPerfil: MiPerfilFalso(),
     ),
   );
   await tester.pumpAndSettle();
@@ -94,10 +111,42 @@ void main() {
 
     expect(find.text('Hola, Ana'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Cerrar sesión'));
+    await tester.tap(find.text('Mi cuenta'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cerrar sesión'));
     await tester.pumpAndSettle();
 
     expect(find.text('Iniciar sesión'), findsOneWidget);
+  });
+
+  testWidgets('eliminar la cuenta pide la contraseña y vuelve al login', (
+    tester,
+  ) async {
+    final repo = await _abrirApp(tester, guardado: _ana);
+    await tester.tap(find.text('Mi cuenta'));
+    await tester.pumpAndSettle();
+    expect(find.text('ana@ejemplo.com'), findsOneWidget);
+
+    await tester.tap(find.text('Eliminar mi cuenta'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Eliminar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Escribe tu contraseña.'), findsOneWidget);
+    expect(repo.passwordEliminar, isNull);
+
+    await tester.enterText(find.byType(TextField), 'otra');
+    await tester.tap(find.widgetWithText(FilledButton, 'Eliminar'));
+    await tester.pumpAndSettle();
+    expect(find.text('La contraseña no es correcta.'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), 'secreta123');
+    await tester.tap(find.widgetWithText(FilledButton, 'Eliminar'));
+    await tester.pumpAndSettle();
+
+    expect(repo.passwordEliminar, 'secreta123');
+    expect(find.text('Iniciar sesión'), findsOneWidget);
+    expect(find.text('Tu cuenta fue eliminada.'), findsOneWidget);
   });
 
   testWidgets('login incorrecto muestra el mensaje de la API', (tester) async {

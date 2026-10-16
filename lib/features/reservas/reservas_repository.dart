@@ -62,6 +62,37 @@ class ReservasRepository {
     return _reserva(datos);
   }
 
+  /// La profesional registra cómo y cuánto le pagaron.
+  Future<Reserva> completar(
+    int reservaId, {
+    required MetodoPago metodo,
+    required int valor,
+  }) async {
+    final datos = await _api.post(
+      '/reservas/$reservaId/completar',
+      datos: {'metodo_pago': metodo.name, 'valor_pagado': valor},
+    );
+    cambios.value++;
+    return _reserva(datos);
+  }
+
+  Future<Reserva> calificar(
+    int reservaId, {
+    required int estrellas,
+    String? comentario,
+  }) async {
+    final datos = await _api.post(
+      '/reservas/$reservaId/calificar',
+      datos: {
+        'estrellas': estrellas,
+        if (comentario != null && comentario.isNotEmpty)
+          'comentario': comentario,
+      },
+    );
+    cambios.value++;
+    return _reserva(datos);
+  }
+
   Reserva _reserva(dynamic datos) =>
       Reserva.fromJson(datos['data'] as Map<String, dynamic>);
 }

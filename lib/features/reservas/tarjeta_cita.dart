@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/fechas.dart';
 import '../../core/formato.dart';
+import '../../core/theme.dart';
 import 'reserva.dart';
 
 /// Una cita en la lista. La clienta ve a la profesional y viceversa.
@@ -72,6 +73,10 @@ class TarjetaCita extends StatelessWidget {
                 Icons.lock_outline,
                 'Verás la dirección y el celular cuando aceptes la cita.',
               ),
+            if (r.valorPagado case final valor?)
+              _Dato(Icons.payments_outlined, _textoPago(valor)),
+            if (r.calificacion case final calificacion?)
+              _CalificacionDada(calificacion, paraProfesional: paraProfesional),
             if (_textoMotivo() case final texto?)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
@@ -89,6 +94,16 @@ class TarjetaCita extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// "Pagado: $30.000 en Nequi" (y la comisión, solo para la profesional).
+  String _textoPago(int valor) {
+    final r = reserva;
+    final metodo = r.metodoPago == null ? '' : ' en ${r.metodoPago!.etiqueta}';
+    final comision = paraProfesional && r.comision != null
+        ? ' · Comisión: ${formatoPesos(r.comision!)}'
+        : '';
+    return 'Pagado: ${formatoPesos(valor)}$metodo$comision';
   }
 
   String? _textoMotivo() {
@@ -178,6 +193,47 @@ class _EtiquetaEstado extends StatelessWidget {
   }
 }
 
+class _CalificacionDada extends StatelessWidget {
+  const _CalificacionDada(this.calificacion, {required this.paraProfesional});
+
+  final CalificacionCita calificacion;
+  final bool paraProfesional;
+
+  @override
+  Widget build(BuildContext context) {
+    final comentario = calificacion.comentario;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(paraProfesional ? 'Te calificó: ' : 'Tu calificación: '),
+              for (var i = 1; i <= 5; i++)
+                Icon(
+                  i <= calificacion.estrellas ? Icons.star : Icons.star_border,
+                  size: 18,
+                  color: Marca.dorado,
+                ),
+            ],
+          ),
+          if (comentario != null && comentario.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                '"$comentario"',
+                style: const TextStyle(fontStyle: FontStyle.italic),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Dato extends StatelessWidget {
   const _Dato(this.icono, this.texto);
 
@@ -235,6 +291,19 @@ class _Botones extends StatelessWidget {
             style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
             onPressed: al(AccionReserva.aceptar),
             child: const Text('Aceptar'),
+          ),
+        if (acciones.contains(AccionReserva.completar))
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+            onPressed: al(AccionReserva.completar),
+            child: const Text('Marcar completada'),
+          ),
+        if (acciones.contains(AccionReserva.calificar))
+          FilledButton.icon(
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+            onPressed: al(AccionReserva.calificar),
+            icon: const Icon(Icons.star_outline),
+            label: const Text('Calificar'),
           ),
       ],
     );

@@ -41,7 +41,12 @@ Future<CatalogoFalso> _abrir(
   final auth = AuthController(_SesionFalsa(usuario));
   await auth.iniciar();
   await tester.pumpWidget(
-    BellezaValienteApp(auth: auth, catalogo: repo, reservas: ReservasFalso()),
+    BellezaValienteApp(
+      auth: auth,
+      catalogo: repo,
+      reservas: ReservasFalso(),
+      miPerfil: MiPerfilFalso(),
+    ),
   );
   await tester.pumpAndSettle();
   return repo;

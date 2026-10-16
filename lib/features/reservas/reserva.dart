@@ -16,7 +16,27 @@ enum EstadoReserva {
 }
 
 /// Acciones que el servidor permite sobre una cita (`acciones` en la API).
-enum AccionReserva { aceptar, rechazar, cancelar }
+enum AccionReserva { aceptar, rechazar, cancelar, completar, calificar }
+
+/// En el MVP el pago es por fuera de la app; la profesional registra cuál se usó.
+enum MetodoPago {
+  efectivo('Efectivo'),
+  nequi('Nequi'),
+  transferencia('Transferencia'),
+  otro('Otro');
+
+  const MetodoPago(this.etiqueta);
+
+  final String etiqueta;
+}
+
+/// Calificación que dejó la clienta sobre una cita completada.
+class CalificacionCita {
+  const CalificacionCita({required this.estrellas, this.comentario});
+
+  final int estrellas;
+  final String? comentario;
+}
 
 /// Cita tal como la devuelve `ReservaResource`. El servidor ya oculta el
 /// teléfono y la dirección cuando no corresponde verlos.
@@ -40,12 +60,17 @@ class Reserva {
     this.canceladaPor,
     this.profesionalTelefono,
     this.clienteTelefono,
+    this.metodoPago,
+    this.valorPagado,
+    this.comision,
+    this.calificacion,
   });
 
   factory Reserva.fromJson(Map<String, dynamic> json) {
     final profesional = json['profesional'] as Map<String, dynamic>;
     final cliente = json['cliente'] as Map<String, dynamic>;
     final acciones = AccionReserva.values.asNameMap();
+    final calificacion = json['calificacion'] as Map<String, dynamic>?;
 
     return Reserva(
       id: json['id'] as int,
@@ -67,6 +92,15 @@ class Reserva {
       profesionalTelefono: profesional['telefono'] as String?,
       clienteNombre: cliente['nombre'] as String,
       clienteTelefono: cliente['telefono'] as String?,
+      metodoPago: MetodoPago.values.asNameMap()[json['metodo_pago']],
+      valorPagado: json['valor_pagado'] as int?,
+      comision: json['comision'] as int?,
+      calificacion: calificacion == null
+          ? null
+          : CalificacionCita(
+              estrellas: calificacion['estrellas'] as int,
+              comentario: calificacion['comentario'] as String?,
+            ),
       acciones: {
         for (final a in (json['acciones'] as List? ?? const [])) ?acciones[a],
       },
@@ -97,6 +131,14 @@ class Reserva {
   final String clienteNombre;
   final String? clienteTelefono;
   final Set<AccionReserva> acciones;
+
+  /// Pago registrado al completar la cita.
+  final MetodoPago? metodoPago;
+  final int? valorPagado;
+
+  /// Comisión de la plataforma; solo la recibe la profesional.
+  final int? comision;
+  final CalificacionCita? calificacion;
 
   /// Pendiente de atender: solicitada (aunque esté vencida) o aceptada.
   bool get proxima => estado.abierta;

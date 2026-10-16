@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../core/api_client.dart';
 import '../../core/fechas.dart';
+import '../../core/formato.dart';
+import '../../core/theme.dart';
 import '../../core/widgets.dart';
-import '../auth/boton_cerrar_sesion.dart';
 import 'reserva.dart';
 import 'reservas_repository.dart';
 import 'tarjeta_cita.dart';
@@ -120,13 +122,13 @@ class _CitasScreenState extends State<CitasScreen> {
   }
 
   Future<void> _ejecutar(Reserva reserva, AccionReserva accion) async {
-    final confirmacion = await _confirmar(reserva, accion);
-    if (confirmacion == null || !mounted) return;
+    final enviar = await _pedirDatos(reserva, accion);
+    if (enviar == null || !mounted) return;
 
     setState(() => _ocupadas.add(reserva.id));
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await _repo.ejecutar(accion, reserva.id, motivo: confirmacion.motivo);
+      await enviar();
       messenger.showSnackBar(SnackBar(content: Text(_exito(accion))));
     } on ApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.mensaje)));
@@ -141,7 +143,46 @@ class _CitasScreenState extends State<CitasScreen> {
       'Cita aceptada. Ya puedes ver la dirección y el celular.',
     AccionReserva.rechazar => 'Solicitud rechazada.',
     AccionReserva.cancelar => 'Cita cancelada.',
+    AccionReserva.completar => 'Cita completada.',
+    AccionReserva.calificar => '¡Gracias por tu calificación!',
   };
+
+  /// Pide confirmación y los datos de la acción (motivo, pago o calificación).
+  /// Devuelve la llamada a la API, o null si la usuaria se arrepiente.
+  Future<Future<Reserva> Function()?> _pedirDatos(
+    Reserva r,
+    AccionReserva accion,
+  ) async {
+    switch (accion) {
+      case AccionReserva.completar:
+        final pago = await showDialog<_Pago>(
+          context: context,
+          builder: (_) => _DialogoCompletar(reserva: r),
+        );
+        if (pago == null) return null;
+        return () =>
+            _repo.completar(r.id, metodo: pago.metodo, valor: pago.valor);
+
+      case AccionReserva.calificar:
+        final calificacion = await showDialog<CalificacionCita>(
+          context: context,
+          builder: (_) => _DialogoCalificar(reserva: r),
+        );
+        if (calificacion == null) return null;
+        return () => _repo.calificar(
+          r.id,
+          estrellas: calificacion.estrellas,
+          comentario: calificacion.comentario,
+        );
+
+      case AccionReserva.aceptar:
+      case AccionReserva.rechazar:
+      case AccionReserva.cancelar:
+        final confirmacion = await _confirmar(r, accion);
+        if (confirmacion == null) return null;
+        return () => _repo.ejecutar(accion, r.id, motivo: confirmacion.motivo);
+    }
+  }
 
   /// Pide confirmación y, si aplica, el motivo. Devuelve null si se arrepiente.
   Future<_Confirmacion?> _confirmar(Reserva r, AccionReserva accion) {
@@ -171,7 +212,7 @@ class _CitasScreenState extends State<CitasScreen> {
           motivoObligatorio: true,
           ayudaMotivo: 'Motivo (obligatorio). La clienta lo verá.',
         ),
-        AccionReserva.cancelar => _DialogoConfirmar(
+        _ => _DialogoConfirmar(
           titulo: '¿Cancelar la cita?',
           mensaje: '${r.servicio} con ${r.profesionalNombre}, el $cuando.',
           confirmar: 'Cancelar cita',
@@ -191,7 +232,6 @@ class _CitasScreenState extends State<CitasScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Mis citas'),
-          actions: const [BotonCerrarSesion()],
           bottom: TabBar(
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white70,
@@ -336,6 +376,223 @@ class _DialogoConfirmarState extends State<_DialogoConfirmar> {
           style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
           onPressed: _aceptar,
           child: Text(widget.confirmar),
+        ),
+      ],
+    );
+  }
+}
+
+class _Pago {
+  const _Pago(this.metodo, this.valor);
+
+  final MetodoPago metodo;
+  final int valor;
+}
+
+/// La profesional registra cómo y cuánto le pagaron (el pago es por fuera de
+/// la app). La comisión la calcula el servidor.
+class _DialogoCompletar extends StatefulWidget {
+  const _DialogoCompletar({required this.reserva});
+
+  final Reserva reserva;
+
+  @override
+  State<_DialogoCompletar> createState() => _DialogoCompletarState();
+}
+
+class _DialogoCompletarState extends State<_DialogoCompletar> {
+  late final _valor = TextEditingController(text: '${widget.reserva.precio}');
+  MetodoPago? _metodo;
+  String? _errorMetodo;
+  String? _errorValor;
+
+  @override
+  void dispose() {
+    _valor.dispose();
+    super.dispose();
+  }
+
+  void _aceptar() {
+    final valor = int.tryParse(_valor.text);
+    setState(() {
+      _errorMetodo = _metodo == null ? 'Elige cómo te pagaron.' : null;
+      _errorValor = (valor == null || valor < 1)
+          ? 'Escribe el valor que te pagaron.'
+          : null;
+    });
+    if (_errorMetodo != null || _errorValor != null) return;
+    Navigator.of(context).pop(_Pago(_metodo!, valor!));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = widget.reserva;
+    final colores = Theme.of(context).colorScheme;
+
+    return AlertDialog(
+      title: const Text('¿Cómo te pagaron?'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${r.servicio} con ${r.clienteNombre}. '
+              'Precio acordado: ${formatoPesos(r.precio)}.',
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final m in MetodoPago.values)
+                  ChoiceChip(
+                    label: Text(m.etiqueta),
+                    selected: _metodo == m,
+                    onSelected: (_) => setState(() {
+                      _metodo = m;
+                      _errorMetodo = null;
+                    }),
+                  ),
+              ],
+            ),
+            if (_errorMetodo != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  _errorMetodo!,
+                  style: TextStyle(color: colores.error, fontSize: 12),
+                ),
+              ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _valor,
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(8),
+              ],
+              decoration: InputDecoration(
+                labelText: 'Valor pagado',
+                prefixText: r'$ ',
+                helperText: 'En pesos, sin puntos.',
+                errorText: _errorValor,
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Volver'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+          onPressed: _aceptar,
+          child: const Text('Completar'),
+        ),
+      ],
+    );
+  }
+}
+
+/// La clienta califica con estrellas y un comentario opcional.
+class _DialogoCalificar extends StatefulWidget {
+  const _DialogoCalificar({required this.reserva});
+
+  final Reserva reserva;
+
+  @override
+  State<_DialogoCalificar> createState() => _DialogoCalificarState();
+}
+
+class _DialogoCalificarState extends State<_DialogoCalificar> {
+  final _comentario = TextEditingController();
+  int _estrellas = 0;
+  String? _error;
+
+  @override
+  void dispose() {
+    _comentario.dispose();
+    super.dispose();
+  }
+
+  void _aceptar() {
+    if (_estrellas == 0) {
+      setState(() => _error = 'Elige de 1 a 5 estrellas.');
+      return;
+    }
+    final comentario = _comentario.text.trim();
+    Navigator.of(context).pop(
+      CalificacionCita(
+        estrellas: _estrellas,
+        comentario: comentario.isEmpty ? null : comentario,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final r = widget.reserva;
+
+    return AlertDialog(
+      title: Text('¿Cómo te fue con ${r.profesionalNombre}?'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(r.servicio),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var i = 1; i <= 5; i++)
+                  IconButton(
+                    tooltip: i == 1 ? '1 estrella' : '$i estrellas',
+                    onPressed: () => setState(() {
+                      _estrellas = i;
+                      _error = null;
+                    }),
+                    icon: Icon(
+                      i <= _estrellas ? Icons.star : Icons.star_border,
+                      size: 32,
+                      color: Marca.dorado,
+                    ),
+                  ),
+              ],
+            ),
+            if (_error != null)
+              Text(
+                _error!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 12,
+                ),
+              ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _comentario,
+              maxLength: 500,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Comentario (opcional)',
+                helperText: 'Aparecerá en el perfil de la profesional.',
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Volver'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+          onPressed: _aceptar,
+          child: const Text('Enviar'),
         ),
       ],
     );

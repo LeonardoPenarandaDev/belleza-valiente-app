@@ -53,7 +53,12 @@ Future<ReservasFalso> _abrir(
   final auth = AuthController(_SesionFalsa(usuario));
   await auth.iniciar();
   await tester.pumpWidget(
-    BellezaValienteApp(auth: auth, catalogo: CatalogoFalso(), reservas: repo),
+    BellezaValienteApp(
+      auth: auth,
+      catalogo: CatalogoFalso(),
+      reservas: repo,
+      miPerfil: MiPerfilFalso(),
+    ),
   );
   await tester.pumpAndSettle();
   return repo;
@@ -322,6 +327,89 @@ void main() {
     expect(find.text('Rechazar'), findsOneWidget);
   });
 
+  testWidgets('la profesional completa una cita registrando el pago', (
+    tester,
+  ) async {
+    final repo = await _abrir(
+      tester,
+      _profesional,
+      reservas: [
+        reservaDePrueba(
+          estado: EstadoReserva.aceptada,
+          acciones: {AccionReserva.completar, AccionReserva.cancelar},
+        ),
+      ],
+    );
+    await tester.tap(find.text('Agenda (1)'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Marcar completada'));
+    await tester.pumpAndSettle();
+    expect(find.text('¿Cómo te pagaron?'), findsOneWidget);
+
+    // Sin método de pago no se envía.
+    await tester.tap(find.widgetWithText(FilledButton, 'Completar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Elige cómo te pagaron.'), findsOneWidget);
+    expect(repo.pagos, isEmpty);
+
+    // El valor viene con el precio acordado; se puede corregir.
+    expect(find.widgetWithText(TextField, '26000'), findsOneWidget);
+    await tester.tap(find.text('Nequi'));
+    await tester.enterText(find.byType(TextField), '30000');
+    await tester.tap(find.widgetWithText(FilledButton, 'Completar'));
+    await tester.pumpAndSettle();
+
+    expect(repo.pagos.single, (1, MetodoPago.nequi, 30000));
+    expect(find.text('Cita completada.'), findsOneWidget);
+
+    await tester.tap(find.text('Historial'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(r'Pagado: $30.000 en Nequi · Comisión: $4.500'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('la clienta califica una cita completada', (tester) async {
+    final repo = await _abrir(
+      tester,
+      _clienta,
+      reservas: [
+        reservaDePrueba(
+          estado: EstadoReserva.completada,
+          metodoPago: MetodoPago.efectivo,
+          valorPagado: 26000,
+          acciones: {AccionReserva.calificar},
+        ),
+      ],
+    );
+    await tester.tap(find.text('Mis citas'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Historial'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(r'Pagado: $26.000 en Efectivo'), findsOneWidget);
+    await tester.tap(find.text('Calificar'));
+    await tester.pumpAndSettle();
+    expect(find.text('¿Cómo te fue con Laura Gómez?'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Enviar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Elige de 1 a 5 estrellas.'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('4 estrellas'));
+    await tester.enterText(find.byType(TextField), 'Muy puntual');
+    await tester.tap(find.widgetWithText(FilledButton, 'Enviar'));
+    await tester.pumpAndSettle();
+
+    expect(repo.calificaciones.single, (1, 4, 'Muy puntual'));
+    expect(find.text('¡Gracias por tu calificación!'), findsOneWidget);
+    expect(find.text('Tu calificación: '), findsOneWidget);
+    expect(find.text('"Muy puntual"'), findsOneWidget);
+    expect(find.text('Calificar'), findsNothing);
+  });
+
   group('Reserva.fromJson', () {
     test('lee la respuesta de la API', () {
       final r = Reserva.fromJson({
@@ -353,6 +441,33 @@ void main() {
       expect(r.profesionalTelefono, '573000000000');
       expect(r.clienteTelefono, isNull);
       expect(formatoFechaHora(r.fechaHora), 'jueves 15 de octubre, 3:00 p. m.');
+      expect(r.metodoPago, isNull);
+      expect(r.calificacion, isNull);
+    });
+
+    test('lee el pago y la calificación de una cita completada', () {
+      final r = Reserva.fromJson({
+        'id': 6,
+        'estado': 'completada',
+        'fecha_hora': '2026-10-15T15:00:00-05:00',
+        'duracion_minutos': 45,
+        'precio': 25000,
+        'metodo_pago': 'transferencia',
+        'valor_pagado': 28000,
+        'comision': 4200,
+        'calificacion': {'estrellas': 5, 'comentario': 'Excelente'},
+        'servicio': {'id': 7, 'nombre': 'Manicura tradicional'},
+        'zona': {'id': 1, 'nombre': 'Centro'},
+        'profesional': {'id': 1, 'nombre': 'Laura Gómez'},
+        'cliente': {'nombre': 'Ana Pérez'},
+        'acciones': [],
+      });
+
+      expect(r.metodoPago, MetodoPago.transferencia);
+      expect(r.valorPagado, 28000);
+      expect(r.comision, 4200);
+      expect(r.calificacion?.estrellas, 5);
+      expect(r.calificacion?.comentario, 'Excelente');
     });
   });
 

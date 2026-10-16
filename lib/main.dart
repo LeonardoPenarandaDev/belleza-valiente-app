@@ -9,6 +9,7 @@ import 'features/auth/auth_repository.dart';
 import 'features/auth/login_screen.dart';
 import 'features/catalogo/catalogo_repository.dart';
 import 'features/inicio/inicio_screen.dart';
+import 'features/perfil/mi_perfil_repository.dart';
 import 'features/reservas/reservas_repository.dart';
 
 void main() {
@@ -25,6 +26,7 @@ void main() {
       auth: auth,
       catalogo: CatalogoRepository(api),
       reservas: ReservasRepository(api),
+      miPerfil: MiPerfilRepository(api),
     ),
   );
 }
@@ -35,11 +37,13 @@ class BellezaValienteApp extends StatefulWidget {
     required this.auth,
     required this.catalogo,
     required this.reservas,
+    required this.miPerfil,
   });
 
   final AuthController auth;
   final CatalogoRepository catalogo;
   final ReservasRepository reservas;
+  final MiPerfilRepository miPerfil;
 
   @override
   State<BellezaValienteApp> createState() => _BellezaValienteAppState();
@@ -79,14 +83,17 @@ class _BellezaValienteAppState extends State<BellezaValienteApp> {
         repo: widget.catalogo,
         child: ReservasScope(
           repo: widget.reservas,
-          child: MaterialApp(
-            title: 'Belleza Valiente',
-            navigatorKey: _navegador,
-            theme: temaBellezaValiente(),
-            locale: const Locale('es', 'CO'),
-            supportedLocales: const [Locale('es', 'CO'), Locale('es')],
-            localizationsDelegates: GlobalMaterialLocalizations.delegates,
-            home: const _PantallaRaiz(),
+          child: MiPerfilScope(
+            repo: widget.miPerfil,
+            child: MaterialApp(
+              title: 'Belleza Valiente',
+              navigatorKey: _navegador,
+              theme: temaBellezaValiente(),
+              locale: const Locale('es', 'CO'),
+              supportedLocales: const [Locale('es', 'CO'), Locale('es')],
+              localizationsDelegates: GlobalMaterialLocalizations.delegates,
+              home: const _PantallaRaiz(),
+            ),
           ),
         ),
       ),

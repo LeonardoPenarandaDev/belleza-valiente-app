@@ -71,6 +71,13 @@ class AuthRepository {
     }
   }
 
+  /// Elimina la cuenta (el servidor anonimiza los datos y revoca los tokens).
+  /// Pide la contraseña para evitar borrados por error.
+  Future<void> eliminarCuenta(String password) async {
+    await _api.delete('/me', datos: {'password': password});
+    await _tokens.borrar();
+  }
+
   Future<Usuario> _guardarSesion(dynamic datos) async {
     await _tokens.guardar(datos['token'] as String);
     return Usuario.fromJson(datos['user'] as Map<String, dynamic>);
