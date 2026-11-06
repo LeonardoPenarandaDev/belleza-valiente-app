@@ -1,3 +1,4 @@
+import 'package:belleza_valiente_app/core/launcher_service.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/api_client.dart';
@@ -17,6 +18,17 @@ class CuentaScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mi cuenta')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          LauncherService.abrirWhatsApp(
+            telefono: "573000000000",
+            mensaje: "Hola, necesito soporte con la app Belleza Valiente.",
+          );
+        },
+        backgroundColor: const Color(0xFF25D366),
+        icon: const Icon(Icons.support_agent, color: Colors.white),
+        label: const Text('Ayuda', style: TextStyle(color: Colors.white)),
+      ),
       body: ListView(
         children: [
           ListTile(
