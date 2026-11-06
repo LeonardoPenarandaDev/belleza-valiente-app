@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../core/widgets.dart';
 import 'auth_controller.dart';
+import 'terms_policy_screen.dart';
 
 /// Registro público: solo para clientas.
 class RegistroScreen extends StatefulWidget {
@@ -147,12 +148,27 @@ class _RegistroScreenState extends State<RegistroScreen> {
                         },
                         contentPadding: EdgeInsets.zero,
                         controlAffinity: ListTileControlAffinity.leading,
-                        title: const Text(
-                          'Acepto los términos y condiciones y la política de '
-                          'tratamiento de datos personales.',
+                        title: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const TermsPolicyScreen(),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            'Acepto los Términos y Política de Datos',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              decoration: TextDecoration.underline,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
-                      if ((campo.errorText ?? error?.errorDe('acepta_terminos')) case final texto?)
+                      if ((campo.errorText ?? error?.errorDe('acepta_terminos'))
+                          case final texto?)
                         Text(
                           texto,
                           style: TextStyle(
