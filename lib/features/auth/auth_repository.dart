@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import '../../core/api_client.dart';
 import '../../core/token_storage.dart';
 import 'usuario.dart';
@@ -78,8 +80,23 @@ class AuthRepository {
     await _tokens.borrar();
   }
 
+  /// Sube o actualiza la foto de perfil del usuario.
+  Future<Usuario> subirFotoPerfil(String ruta) async {
+    final datos = await _api.post(
+      '/me/foto',
+      datos: FormData.fromMap({'foto': await MultipartFile.fromFile(ruta)}),
+    );
+    return Usuario.fromJson(datos['data'] as Map<String, dynamic>);
+  }
+
+  /// Elimina la foto de perfil del usuario.
+  Future<Usuario> borrarFotoPerfil() async {
+    final datos = await _api.delete('/me/foto');
+    return Usuario.fromJson(datos['data'] as Map<String, dynamic>);
+  }
+
   Future<Usuario> _guardarSesion(dynamic datos) async {
-    await _tokens.guardar(datos['token'] as String);
+    await _tokens.guardar(datos['access_token'] as String);
     return Usuario.fromJson(datos['user'] as Map<String, dynamic>);
   }
 }

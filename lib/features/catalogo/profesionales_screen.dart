@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/formato.dart';
+import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import 'catalogo_repository.dart';
 import 'modelos.dart';
@@ -44,7 +45,6 @@ class _ProfesionalesScreenState extends State<ProfesionalesScreen> {
     }
   }
 
-  /// Carga la primera página, o la siguiente si [mas] es true.
   Future<void> _cargar({bool mas = false}) async {
     final zonaId = _zonaId;
     setState(() {
@@ -58,7 +58,6 @@ class _ProfesionalesScreenState extends State<ProfesionalesScreen> {
         zonaId: zonaId,
         pagina: mas ? _pagina + 1 : 1,
       );
-      // Si mientras tanto cambió la zona, esta respuesta ya no sirve.
       if (!mounted || zonaId != _zonaId) return;
       setState(() {
         if (!mas) _profesionales.clear();
@@ -88,12 +87,15 @@ class _ProfesionalesScreenState extends State<ProfesionalesScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
             child: DropdownButtonFormField<int?>(
               initialValue: _zonaId,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Zona',
-                prefixIcon: Icon(Icons.place_outlined),
+                prefixIcon: const Icon(Icons.place_outlined, color: Marca.azulMarino),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               items: [
                 const DropdownMenuItem(
@@ -165,6 +167,12 @@ class _TarjetaProfesional extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
+      elevation: 1.5,
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Marca.bordeSuave, width: 0.8),
+      ),
       child: InkWell(
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute(
@@ -175,39 +183,55 @@ class _TarjetaProfesional extends StatelessWidget {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
             children: [
               AvatarProfesional(
                 nombre: profesional.nombre,
                 foto: profesional.fotoPrincipal,
+                radio: 26,
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(profesional.nombre, style: textos.titleMedium),
-                    const SizedBox(height: 2),
+                    Text(
+                      profesional.nombre,
+                      style: textos.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
                     CalificacionResumen(
                       promedio: profesional.calificacionPromedio,
                       total: profesional.totalCalificaciones,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      profesional.zonas.map((z) => z.nombre).join(', '),
-                      style: textos.bodySmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        const Icon(Icons.place_outlined, size: 14, color: Marca.textoSecundario),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            profesional.zonas.map((z) => z.nombre).join(', '),
+                            style: textos.bodySmall?.copyWith(color: Marca.textoSecundario),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
               if (profesional.precio != null)
                 Text(
                   formatoPesos(profesional.precio!),
                   style: textos.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: Marca.doradoOscuro,
                   ),
                 ),
             ],
@@ -251,9 +275,12 @@ class _PieDeLista extends StatelessWidget {
       );
     }
     if (hayMas) {
-      return TextButton(
-        onPressed: onVerMas,
-        child: const Text('Ver más profesionales'),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: OutlinedButton(
+          onPressed: onVerMas,
+          child: const Text('Ver más profesionales'),
+        ),
       );
     }
     return const SizedBox(height: 16);

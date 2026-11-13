@@ -18,7 +18,7 @@ class CatalogoRepository {
     final datos = await _api.get('/categorias');
     return _categorias = [
       for (final c in datos['data'] as List)
-        Categoria.fromJson(c as Map<String, dynamic>),
+                Categoria.fromJson(c as Map<String, dynamic>),
     ];
   }
 

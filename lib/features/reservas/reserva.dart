@@ -54,6 +54,8 @@ class Reserva {
     required this.profesionalNombre,
     required this.clienteNombre,
     required this.acciones,
+    this.profesionalFoto,
+    this.clienteFoto,
     this.direccion,
     this.notas,
     this.motivo,
@@ -90,8 +92,10 @@ class Reserva {
       profesionalId: profesional['id'] as int,
       profesionalNombre: profesional['nombre'] as String,
       profesionalTelefono: profesional['telefono'] as String?,
+      profesionalFoto: profesional['foto_perfil'] as String?,
       clienteNombre: cliente['nombre'] as String,
       clienteTelefono: cliente['telefono'] as String?,
+      clienteFoto: cliente['foto_perfil'] as String?,
       metodoPago: MetodoPago.values.asNameMap()[json['metodo_pago']],
       valorPagado: json['valor_pagado'] as int?,
       comision: json['comision'] as int?,
@@ -128,8 +132,10 @@ class Reserva {
   final int profesionalId;
   final String profesionalNombre;
   final String? profesionalTelefono;
+  final String? profesionalFoto;
   final String clienteNombre;
   final String? clienteTelefono;
+  final String? clienteFoto;
   final Set<AccionReserva> acciones;
 
   /// Pago registrado al completar la cita.

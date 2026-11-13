@@ -41,6 +41,7 @@ class PerfilPropio {
     required this.zonas,
     required this.servicios,
     required this.fotos,
+    this.fotoPerfil,
     this.bio,
     this.aniosExperiencia,
   });
@@ -48,6 +49,7 @@ class PerfilPropio {
   factory PerfilPropio.fromJson(Map<String, dynamic> json) => PerfilPropio(
     id: json['id'] as int,
     nombre: json['nombre'] as String,
+    fotoPerfil: json['foto_perfil'] as String?,
     bio: json['bio'] as String?,
     aniosExperiencia: json['anios_experiencia'] as int?,
     verificada: json['verificada'] as bool? ?? false,
@@ -70,6 +72,7 @@ class PerfilPropio {
 
   final int id;
   final String nombre;
+  final String? fotoPerfil;
   final String? bio;
   final int? aniosExperiencia;
 
@@ -85,6 +88,7 @@ class PerfilPropio {
   PerfilPropio conFotos(List<Foto> fotos) => PerfilPropio(
     id: id,
     nombre: nombre,
+    fotoPerfil: fotoPerfil,
     bio: bio,
     aniosExperiencia: aniosExperiencia,
     verificada: verificada,

@@ -58,6 +58,20 @@ class AuthController extends ChangeNotifier {
     sesionExpirada();
   }
 
+  Future<Usuario> subirFotoPerfil(String ruta) async {
+    final actualizado = await _repo.subirFotoPerfil(ruta);
+    usuario = actualizado;
+    notifyListeners();
+    return actualizado;
+  }
+
+  Future<Usuario> borrarFotoPerfil() async {
+    final actualizado = await _repo.borrarFotoPerfil();
+    usuario = actualizado;
+    notifyListeners();
+    return actualizado;
+  }
+
   /// La API respondió 401: el token ya no sirve.
   void sesionExpirada() {
     usuario = null;

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/fechas.dart';
 import '../../core/formato.dart';
 import '../../core/theme.dart';
+import '../../core/widgets.dart';
 import 'reserva.dart';
 
 /// Una cita en la lista. La clienta ve a la profesional y viceversa.
@@ -27,6 +28,7 @@ class TarjetaCita extends StatelessWidget {
     final textos = Theme.of(context).textTheme;
     final r = reserva;
     final contraparte = paraProfesional ? r.clienteNombre : r.profesionalNombre;
+    final contraparteFoto = paraProfesional ? r.clienteFoto : r.profesionalFoto;
     final telefono = paraProfesional
         ? r.clienteTelefono
         : r.profesionalTelefono;
@@ -49,10 +51,37 @@ class TarjetaCita extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(r.servicio, style: textos.titleMedium),
-            Text(contraparte),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                AvatarProfesional(
+                  nombre: contraparte,
+                  foto: contraparteFoto,
+                  radio: 22,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        r.servicio,
+                        style: textos.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        contraparte,
+                        style: textos.bodyMedium?.copyWith(
+                          color: Marca.textoSecundario,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
             _Dato(
               Icons.event,
               '${formatoFechaHora(r.fechaHora)} · '
