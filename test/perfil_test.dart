@@ -60,7 +60,7 @@ void main() {
     expect(find.text('Centro'), findsOneWidget);
     expect(find.text('Manicura tradicional'), findsOneWidget);
     expect(find.text(r'$26.000'), findsOneWidget);
-    expect(find.text('Fotos (0 de 10)'), findsOneWidget);
+    expect(find.text('Fotos (0 de 30)'), findsOneWidget);
     expect(find.textContaining('las clientas no'), findsNothing);
   });
 
@@ -189,14 +189,14 @@ void main() {
         fotos: const [Foto(id: 1, url: 'http://fotos.test/1.jpg')],
       ),
     );
-    expect(find.text('Fotos (1 de 10)'), findsOneWidget);
+    expect(find.text('Fotos (1 de 30)'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Borrar foto'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Borrar'));
     await tester.pumpAndSettle();
     expect(repo.borradas, [1]);
-    expect(find.text('Fotos (0 de 10)'), findsOneWidget);
+    expect(find.text('Fotos (0 de 30)'), findsOneWidget);
   });
 
   testWidgets('sube la foto elegida de la galería', (tester) async {
@@ -220,7 +220,7 @@ void main() {
 
     expect(repo.subidas, ['foto.jpg']);
     expect(find.text('Foto agregada.'), findsOneWidget);
-    expect(find.text('Fotos (1 de 10)'), findsOneWidget);
+    expect(find.text('Fotos (1 de 30)'), findsOneWidget);
   });
 
   test('PerfilPropio.fromJson lee la respuesta de la API', () {

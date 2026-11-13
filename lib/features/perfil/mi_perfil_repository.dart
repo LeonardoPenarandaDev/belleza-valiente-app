@@ -12,7 +12,7 @@ class MiPerfilRepository {
   final ApiClient _api;
 
   /// Máximo de fotos del portafolio (lo valida también el servidor).
-  static const maxFotos = 10;
+  static const maxFotos = 30;
 
   Future<PerfilPropio> ver() async =>
       _perfil(await _api.get('/mi-perfil-profesional'));

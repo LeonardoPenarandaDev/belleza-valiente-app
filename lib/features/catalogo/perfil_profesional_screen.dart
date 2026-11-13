@@ -57,17 +57,29 @@ class _PerfilProfesionalScreenState extends State<PerfilProfesionalScreen> {
               : _Contenido(perfil: perfil, servicioId: widget.servicioId),
           bottomNavigationBar: perfil == null || perfil.servicios.isEmpty
               ? null
-              : SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    child: FilledButton.icon(
-                      icon: const Icon(Icons.event_available),
-                      label: const Text('Pedir cita'),
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => PedirCitaScreen(
-                            perfil: perfil,
-                            servicioId: widget.servicioId,
+              : Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 10,
+                        offset: const Offset(0, -3),
+                      ),
+                    ],
+                  ),
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                      child: FilledButton.icon(
+                        icon: const Icon(Icons.event_available_rounded, size: 20),
+                        label: const Text('Pedir cita'),
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => PedirCitaScreen(
+                              perfil: perfil,
+                              servicioId: widget.servicioId,
+                            ),
                           ),
                         ),
                       ),
@@ -89,46 +101,98 @@ class _Contenido extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textos = Theme.of(context).textTheme;
-    final colores = Theme.of(context).colorScheme;
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       children: [
-        Row(
-          children: [
-            AvatarProfesional(
-              nombre: perfil.nombre,
-              foto: perfil.fotos.firstOrNull?.url,
-              radio: 40,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        // Tarjeta de cabecera de la profesional
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Marca.bordeSuave),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Row(
                 children: [
-                  Text(perfil.nombre, style: textos.titleLarge),
-                  const SizedBox(height: 4),
-                  CalificacionResumen(
-                    promedio: perfil.calificacionPromedio,
-                    total: perfil.totalCalificaciones,
+                  AvatarProfesional(
+                    nombre: perfil.nombre,
+                    foto: perfil.fotoPerfil ?? perfil.fotos.firstOrNull?.url,
+                    radio: 42,
                   ),
-                  if (perfil.aniosExperiencia != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      perfil.aniosExperiencia == 1
-                          ? '1 año de experiencia'
-                          : '${perfil.aniosExperiencia} años de experiencia',
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          perfil.nombre,
+                          style: textos.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 19,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        CalificacionResumen(
+                          promedio: perfil.calificacionPromedio,
+                          total: perfil.totalCalificaciones,
+                        ),
+                        if (perfil.aniosExperiencia != null) ...[
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              perfil.aniosExperiencia == 1
+                                  ? '1 año de experiencia'
+                                  : '${perfil.aniosExperiencia} años de experiencia',
+                              style: textos.bodySmall?.copyWith(
+                                color: Marca.textoSecundario,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
+                  ),
                 ],
               ),
-            ),
-          ],
+              if (perfil.bio != null && perfil.bio!.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8F9FA),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    perfil.bio!,
+                    style: textos.bodyMedium?.copyWith(
+                      color: Marca.textoPrincipal,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
-        if (perfil.bio != null && perfil.bio!.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Text(perfil.bio!),
-        ],
+
+        // Zonas que atiende
         if (perfil.zonas.isNotEmpty) ...[
           const _Titulo('Zonas que atiende'),
           Wrap(
@@ -137,45 +201,103 @@ class _Contenido extends StatelessWidget {
             children: [
               for (final zona in perfil.zonas)
                 Chip(
-                  avatar: const Icon(Icons.place_outlined, size: 18),
+                  avatar: const Icon(Icons.place_outlined, size: 16, color: Marca.azulMarino),
                   label: Text(zona.nombre),
                 ),
             ],
           ),
         ],
+
+        // Servicios ofrecidos
         const _Titulo('Servicios'),
         for (final servicio in perfil.servicios)
           Card(
+            elevation: servicio.servicioId == servicioId ? 2 : 1,
             color: servicio.servicioId == servicioId
-                ? colores.secondaryContainer
-                : null,
-            child: ListTile(
-              title: Text(servicio.nombre),
-              subtitle: Text(formatoDuracion(servicio.duracionMinutos)),
-              trailing: Text(
-                formatoPesos(servicio.precio),
-                style: textos.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                ? Marca.doradoClaro
+                : Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: servicio.servicioId == servicioId
+                    ? Marca.dorado
+                    : Marca.bordeSuave,
+                width: servicio.servicioId == servicioId ? 1.5 : 0.8,
+              ),
+            ),
+            margin: const EdgeInsets.only(bottom: 10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          servicio.nombre,
+                          style: textos.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Marca.textoPrincipal,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.schedule, size: 14, color: Marca.textoSecundario),
+                            const SizedBox(width: 4),
+                            Text(
+                              formatoDuracion(servicio.duracionMinutos),
+                              style: textos.bodySmall?.copyWith(color: Marca.textoSecundario),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    formatoPesos(servicio.precio),
+                    style: textos.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: servicio.servicioId == servicioId
+                          ? const Color(0xFF7A5E00)
+                          : Marca.azulMarino,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
+
+        // Trabajos / Portafolio visual
         if (perfil.fotos.isNotEmpty) ...[
           const _Titulo('Trabajos'),
           SizedBox(
-            height: 120,
+            height: 140,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: perfil.fotos.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (context, i) =>
                   _Miniatura(fotos: perfil.fotos, indice: i),
             ),
           ),
         ],
+
+        // Opiniones
         const _Titulo('Opiniones'),
         if (perfil.calificaciones.isEmpty)
-          const Text('Todavía no tiene opiniones.')
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Marca.bordeSuave),
+            ),
+            child: const Text('Todavía no tiene opiniones.'),
+          )
         else
           for (final calificacion in perfil.calificaciones)
             _Opinion(calificacion),
@@ -191,8 +313,15 @@ class _Titulo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 24, bottom: 8),
-    child: Text(texto, style: Theme.of(context).textTheme.titleMedium),
+    padding: const EdgeInsets.only(top: 24, bottom: 10),
+    child: Text(
+      texto,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.bold,
+        fontSize: 17,
+        color: Marca.textoPrincipal,
+      ),
+    ),
   );
 }
 
@@ -211,17 +340,50 @@ class _Miniatura extends StatelessWidget {
           builder: (_) => _GaleriaFotos(fotos: fotos, inicial: indice),
         ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.network(
-          fotos[indice].url,
-          width: 120,
-          height: 120,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => Container(
-            width: 120,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            child: const Icon(Icons.broken_image_outlined),
+      child: Container(
+        width: 150,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.network(
+                fotos[indice].url,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(
+                  color: const Color(0xFFE2E8F0),
+                  child: const Center(
+                    child: Icon(Icons.broken_image_outlined, color: Marca.textoSecundario),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.fullscreen,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -240,13 +402,23 @@ class _GaleriaFotos extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(backgroundColor: Colors.black),
-      body: PageView(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: PageView.builder(
         controller: PageController(initialPage: inicial),
-        children: [
-          for (final foto in fotos)
-            InteractiveViewer(child: Center(child: Image.network(foto.url))),
-        ],
+        itemCount: fotos.length,
+        itemBuilder: (context, i) {
+          return InteractiveViewer(
+            child: Center(
+              child: Image.network(
+                fotos[i].url,
+                fit: BoxFit.contain,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -261,33 +433,46 @@ class _Opinion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              for (var i = 1; i <= 5; i++)
-                Icon(
-                  i <= calificacion.estrellas ? Icons.star : Icons.star_border,
-                  size: 18,
-                  color: Marca.dorado,
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: const BorderSide(color: Marca.bordeSuave, width: 0.8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                for (var i = 1; i <= 5; i++)
+                  Icon(
+                    i <= calificacion.estrellas ? Icons.star_rounded : Icons.star_outline_rounded,
+                    size: 18,
+                    color: Marca.doradoOscuro,
+                  ),
+                const SizedBox(width: 8),
+                Text(
+                  _fecha.format(calificacion.fecha.toLocal()),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Marca.textoSecundario,
+                  ),
                 ),
-              const SizedBox(width: 8),
-              Text(
-                _fecha.format(calificacion.fecha.toLocal()),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
-          if (calificacion.comentario != null &&
-              calificacion.comentario!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(calificacion.comentario!),
+              ],
             ),
-        ],
+            if (calificacion.comentario != null &&
+                calificacion.comentario!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  calificacion.comentario!,
+                  style: const TextStyle(fontSize: 14, color: Marca.textoPrincipal),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

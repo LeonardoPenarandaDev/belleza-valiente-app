@@ -68,6 +68,14 @@ class _RepoFalso implements AuthRepository {
       );
     }
   }
+
+  @override
+  Future<Usuario> subirFotoPerfil(String ruta) async =>
+      _ana.copyWith(fotoPerfil: 'http://test/$ruta');
+
+  @override
+  Future<Usuario> borrarFotoPerfil() async =>
+      _ana.copyWith(borrarFoto: true);
 }
 
 Future<_RepoFalso> _abrirApp(WidgetTester tester, {Usuario? guardado}) async {

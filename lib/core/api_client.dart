@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 
-import '../config.dart';
 import 'token_storage.dart';
 
 /// Error de la API listo para mostrar: la API ya responde en español.
@@ -30,7 +29,7 @@ class ApiClient {
           dio ??
           Dio(
             BaseOptions(
-              baseUrl: Config.apiUrl,
+              baseUrl: 'http://127.0.0.1:8000/api/v1',
               connectTimeout: const Duration(seconds: 15),
               receiveTimeout: const Duration(seconds: 20),
               headers: {'Accept': 'application/json'},

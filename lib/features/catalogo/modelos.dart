@@ -188,6 +188,7 @@ class PerfilProfesional {
     required this.servicios,
     required this.fotos,
     required this.calificaciones,
+    this.fotoPerfil,
     this.bio,
     this.aniosExperiencia,
   });
@@ -196,6 +197,7 @@ class PerfilProfesional {
       PerfilProfesional(
         id: json['id'] as int,
         nombre: json['nombre'] as String,
+        fotoPerfil: json['foto_perfil'] as String?,
         bio: json['bio'] as String?,
         aniosExperiencia: json['anios_experiencia'] as int?,
         calificacionPromedio: (json['calificacion_promedio'] as num).toDouble(),
@@ -208,6 +210,7 @@ class PerfilProfesional {
 
   final int id;
   final String nombre;
+  final String? fotoPerfil;
   final String? bio;
   final int? aniosExperiencia;
   final double calificacionPromedio;

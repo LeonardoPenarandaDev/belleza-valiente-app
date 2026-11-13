@@ -12,21 +12,38 @@ class EncabezadoMarca extends StatelessWidget {
 
     return Column(
       children: [
-        Icon(Icons.spa, size: 64, color: colores.secondary),
-        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Marca.doradoClaro,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Marca.dorado.withValues(alpha: 0.25),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Icon(Icons.spa, size: 52, color: Marca.doradoOscuro),
+        ),
+        const SizedBox(height: 16),
         Text(
           'Belleza Valiente',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             color: colores.primary,
             fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           'Servicios de belleza a domicilio en Cúcuta',
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Marca.textoSecundario,
+          ),
         ),
       ],
     );
@@ -43,12 +60,24 @@ class MensajeError extends StatelessWidget {
     final colores = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: colores.errorContainer,
-        borderRadius: BorderRadius.circular(8),
+        color: colores.errorContainer.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colores.error.withValues(alpha: 0.3)),
       ),
-      child: Text(mensaje, style: TextStyle(color: colores.onErrorContainer)),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, size: 20, color: colores.onErrorContainer),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              mensaje,
+              style: TextStyle(color: colores.onErrorContainer, fontSize: 13.5),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -72,13 +101,25 @@ class ErrorAlCargar extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off, size: 48),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.cloud_off_rounded, size: 48, color: Colors.red.shade400),
+            ),
             const SizedBox(height: 16),
-            Text('$error', textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            OutlinedButton(
+            Text(
+              '$error',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 15, color: Marca.textoPrincipal),
+            ),
+            const SizedBox(height: 20),
+            OutlinedButton.icon(
               onPressed: onReintentar,
-              child: const Text('Reintentar'),
+              icon: const Icon(Icons.refresh_rounded, size: 20),
+              label: const Text('Reintentar'),
             ),
           ],
         ),
@@ -98,13 +139,28 @@ class SinResultados extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icono, size: 48, color: Theme.of(context).colorScheme.outline),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icono, size: 44, color: Marca.textoSecundario),
+            ),
             const SizedBox(height: 16),
-            Text(mensaje, textAlign: TextAlign.center),
+            Text(
+              mensaje,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Marca.textoSecundario,
+                height: 1.3,
+              ),
+            ),
           ],
         ),
       ),
@@ -127,7 +183,6 @@ class AvatarProfesional extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colores = Theme.of(context).colorScheme;
     final iniciales = nombre
         .split(' ')
         .where((p) => p.isNotEmpty)
@@ -135,14 +190,29 @@ class AvatarProfesional extends StatelessWidget {
         .map((p) => p[0].toUpperCase())
         .join();
 
-    return CircleAvatar(
-      radius: radio,
-      backgroundColor: colores.secondaryContainer,
-      foregroundImage: foto == null ? null : NetworkImage(foto!),
-      onForegroundImageError: foto == null ? null : (_, _) {},
-      child: Text(
-        iniciales,
-        style: TextStyle(color: colores.onSecondaryContainer),
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [Marca.dorado, Marca.azulMarino],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: CircleAvatar(
+        radius: radio,
+        backgroundColor: const Color(0xFFF1F5F9),
+        foregroundImage: foto == null ? null : NetworkImage(foto!),
+        onForegroundImageError: foto == null ? null : (_, _) {},
+        child: Text(
+          iniciales,
+          style: TextStyle(
+            color: Marca.azulMarino,
+            fontWeight: FontWeight.bold,
+            fontSize: radio * 0.75,
+          ),
+        ),
       ),
     );
   }
@@ -184,7 +254,7 @@ class CargandoEnBoton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const SizedBox.square(
     dimension: 20,
-    child: CircularProgressIndicator(strokeWidth: 2),
+    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
   );
 }
 

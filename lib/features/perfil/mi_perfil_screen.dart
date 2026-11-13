@@ -3,19 +3,99 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/api_client.dart';
 import '../../core/formato.dart';
+import '../../core/theme.dart';
 import '../../core/widgets.dart';
 import '../catalogo/modelos.dart';
 import 'editar_perfil_screens.dart';
 import 'mi_perfil_repository.dart';
 import 'perfil_propio.dart';
 
-/// Elige una foto de la galería, ya reducida para no gastar datos (plan,
-/// sección 1.5). Devuelve la ruta del archivo o null si no eligió ninguna.
+/// Elige una foto de la galería o cámara, reducida para no gastar datos.
 typedef ElegirFoto = Future<String?> Function();
 
 Future<String?> elegirFotoDeGaleria() async {
   final foto = await ImagePicker().pickImage(
     source: ImageSource.gallery,
+    maxWidth: 1600,
+    maxHeight: 1600,
+    imageQuality: 80,
+  );
+  return foto?.path;
+}
+
+Future<String?> _elegirFotoConOpciones(BuildContext context) async {
+  final origen = await showModalBottomSheet<ImageSource>(
+    context: context,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+    ),
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Agregar foto de tu trabajo',
+              style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: Marca.azulMarino,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Muestra el resultado real de tus servicios a las clientas',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Marca.textoSecundario, fontSize: 13.5),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEBF5FF),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.camera_alt_rounded, color: Marca.azulMarino),
+              ),
+              title: const Text('Tomar foto con la cámara', style: TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: const Text('Toma una foto al instante de tu trabajo terminado'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            const Divider(height: 12),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Marca.doradoClaro,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.photo_library_rounded, color: Marca.doradoOscuro),
+              ),
+              title: const Text('Elegir de la galería', style: TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: const Text('Selecciona una imagen guardada en tu teléfono'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  if (origen == null) return null;
+
+  final foto = await ImagePicker().pickImage(
+    source: origen,
     maxWidth: 1600,
     maxHeight: 1600,
     imageQuality: 80,
@@ -64,7 +144,6 @@ class _MiPerfilScreenState extends State<MiPerfilScreen> {
     }
   }
 
-  /// Abre una pantalla de edición; al guardar, devuelve el perfil actualizado.
   Future<void> _editar(Widget pantalla) async {
     final actualizado = await Navigator.of(context)
         .push<PerfilPropio>(MaterialPageRoute(builder: (_) => pantalla));
@@ -75,7 +154,10 @@ class _MiPerfilScreenState extends State<MiPerfilScreen> {
   }
 
   Future<void> _subirFoto() async {
-    final ruta = await widget.elegirFoto();
+    final ruta = widget.elegirFoto == elegirFotoDeGaleria
+        ? await _elegirFotoConOpciones(context)
+        : await widget.elegirFoto();
+
     if (ruta == null || !mounted) return;
 
     setState(() => _subiendo = true);
@@ -96,6 +178,7 @@ class _MiPerfilScreenState extends State<MiPerfilScreen> {
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: const Text('¿Borrar esta foto?'),
         content: const Text('Las clientas ya no la verán en tu perfil.'),
         actions: [
@@ -104,7 +187,10 @@ class _MiPerfilScreenState extends State<MiPerfilScreen> {
             child: const Text('Volver'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(minimumSize: const Size(0, 40)),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              minimumSize: const Size(0, 42),
+            ),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Borrar'),
           ),
@@ -134,7 +220,11 @@ class _MiPerfilScreenState extends State<MiPerfilScreen> {
   void _avisar(String mensaje) {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(mensaje)));
+        .showSnackBar(SnackBar(
+          content: Text(mensaje),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ));
   }
 
   @override
@@ -160,11 +250,11 @@ class _MiPerfilScreenState extends State<MiPerfilScreen> {
     return RefreshIndicator(
       onRefresh: _cargar,
       child: ListView(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         children: [
           if (_avisoVisibilidad(perfil) case final aviso?)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: 12),
               child: MensajeError(aviso),
             ),
           _Seccion(
@@ -177,17 +267,31 @@ class _MiPerfilScreenState extends State<MiPerfilScreen> {
                   bio == null || bio.isEmpty
                       ? 'Cuéntales a las clientas sobre tu experiencia.'
                       : bio,
+                  style: TextStyle(
+                    color: (bio == null || bio.isEmpty) ? Marca.textoSecundario : Marca.textoPrincipal,
+                    fontSize: 14.5,
+                  ),
                 ),
                 if (perfil.aniosExperiencia case final anios?) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    anios == 1
-                        ? '1 año de experiencia'
-                        : '$anios años de experiencia',
-                    style: textos.bodySmall,
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      anios == 1
+                          ? '1 año de experiencia'
+                          : '$anios años de experiencia',
+                      style: textos.bodySmall?.copyWith(
+                        color: Marca.textoSecundario,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ],
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 CalificacionResumen(
                   promedio: perfil.calificacionPromedio,
                   total: perfil.totalCalificaciones,
@@ -199,12 +303,19 @@ class _MiPerfilScreenState extends State<MiPerfilScreen> {
             titulo: 'Zonas donde atiendo',
             onEditar: () => _editar(EditarZonasScreen(perfil: perfil)),
             child: perfil.zonas.isEmpty
-                ? const Text('Elige al menos una zona para recibir citas.')
+                ? const Text(
+                    'Elige al menos una zona para recibir citas.',
+                    style: TextStyle(color: Marca.textoSecundario),
+                  )
                 : Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final z in perfil.zonas) Chip(label: Text(z.nombre)),
+                      for (final z in perfil.zonas)
+                        Chip(
+                          avatar: const Icon(Icons.place_outlined, size: 16, color: Marca.azulMarino),
+                          label: Text(z.nombre),
+                        ),
                     ],
                   ),
           ),
@@ -212,27 +323,47 @@ class _MiPerfilScreenState extends State<MiPerfilScreen> {
             titulo: 'Servicios y precios',
             onEditar: () => _editar(EditarServiciosScreen(perfil: perfil)),
             child: perfil.servicios.isEmpty
-                ? const Text('Elige los servicios que ofreces y su precio.')
+                ? const Text(
+                    'Elige los servicios que ofreces y su precio.',
+                    style: TextStyle(color: Marca.textoSecundario),
+                  )
                 : Column(
                     children: [
                       for (final s in perfil.servicios)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1),
+                            ),
+                          ),
                           child: Row(
                             children: [
                               Expanded(
                                 child: Text(
                                   s.activo ? s.nombre : '${s.nombre} (pausado)',
                                   style: s.activo
-                                      ? null
+                                      ? const TextStyle(fontWeight: FontWeight.w500)
                                       : TextStyle(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .outline,
+                                          color: Theme.of(context).colorScheme.outline,
                                         ),
                                 ),
                               ),
-                              Text(formatoPesos(s.precio)),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Marca.doradoClaro,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  formatoPesos(s.precio),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF7A5E00),
+                                    fontSize: 13.5,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -266,11 +397,40 @@ class _MiPerfilScreenState extends State<MiPerfilScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Mensaje de ayuda / recomendación para la profesional
+        Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0FDF4),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFDCFCE7)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.lightbulb_outline, size: 20, color: Color(0xFF16A34A)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Sube fotos nítidas de tus peinados, uñas, cortes o maquillaje. '
+                  'Las clientas revisan estas fotos antes de agendar su cita.',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: Colors.green.shade900,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
         if (perfil.fotos.isNotEmpty)
           GridView.count(
             crossAxisCount: 3,
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             children: [
@@ -282,13 +442,21 @@ class _MiPerfilScreenState extends State<MiPerfilScreen> {
                 ),
             ],
           ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            side: BorderSide(color: lleno ? Colors.grey : Marca.azulMarino, width: 1.5),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
           onPressed: lleno || _subiendo ? null : _subirFoto,
           icon: _subiendo
               ? const CargandoEnBoton()
-              : const Icon(Icons.add_a_photo_outlined),
-          label: Text(lleno ? 'Llegaste al máximo de fotos' : 'Agregar foto'),
+              : const Icon(Icons.add_a_photo_outlined, size: 20),
+          label: Text(
+            lleno ? 'Llegaste al máximo de fotos' : 'Agregar foto',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
       ],
     );
@@ -305,8 +473,14 @@ class _Seccion extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: Marca.bordeSuave, width: 0.8),
+      ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 8, 16),
+        padding: const EdgeInsets.fromLTRB(16, 10, 10, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -315,20 +489,24 @@ class _Seccion extends StatelessWidget {
                 Expanded(
                   child: Text(
                     titulo,
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Marca.textoPrincipal,
+                    ),
                   ),
                 ),
                 if (onEditar != null)
                   IconButton(
                     tooltip: 'Editar $titulo'.toLowerCase(),
-                    icon: const Icon(Icons.edit_outlined),
+                    icon: const Icon(Icons.edit_outlined, size: 20, color: Marca.azulMarino),
                     onPressed: onEditar,
                   )
                 else
                   const SizedBox(height: 48),
               ],
             ),
-            Padding(padding: const EdgeInsets.only(right: 8), child: child),
+            Padding(padding: const EdgeInsets.only(right: 6), child: child),
           ],
         ),
       ),
@@ -349,37 +527,58 @@ class _FotoEditable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Image.network(
-            foto.url,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => const ColoredBox(
-              color: Colors.black12,
-              child: Icon(Icons.broken_image_outlined),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              foto.url,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(
+                color: const Color(0xFFE2E8F0),
+                child: const Center(
+                  child: Icon(Icons.broken_image_outlined, color: Marca.textoSecundario),
+                ),
+              ),
             ),
           ),
-        ),
-        Positioned(
-          top: 0,
-          right: 0,
-          child: borrando
-              ? const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: CargandoEnBoton(),
-                )
-              : IconButton.filledTonal(
-                  tooltip: 'Borrar foto',
-                  iconSize: 18,
-                  visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: onBorrar,
-                ),
-        ),
-      ],
+          Positioned(
+            top: 4,
+            right: 4,
+            child: borrando
+                ? Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    ),
+                  )
+                : IconButton.filledTonal(
+                    tooltip: 'Borrar foto',
+                    iconSize: 18,
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: onBorrar,
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
